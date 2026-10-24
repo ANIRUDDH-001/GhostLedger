@@ -320,3 +320,27 @@ branch=main
 repo_root=D:\oct26\hackerrank-orchestrate-october26
 worktree=main
 parent_agent=none
+
+## [2026-10-24T17:32:28Z] Phase 5 A3 diagnosis, B1-B4 proof model and status-mapping study
+
+User Prompt (verbatim, secrets redacted):
+continue
+
+Agent Response Summary:
+A3: the pypdf import flake did not reproduce in 39 instrumented sessions. Three mechanisms give the same message; the probe's sensitivity is falsification-verified. Status UNRESOLVED; the retry is kept as containment only.
+B1-B3: added an analysis-only proof model (code/ghostledger/proof.py) that separates coverage, compliance and citation identity/authority, with 15 regression tests. 9/9 mutants are killed.
+B4 ran the model over all 518 cases in default and attribution modes. The labelled sample accepts 7 handover-claim findings and 4 UNKNOWN-scope omissions that the strict model rejects, so the model is review tooling, not an oracle.
+Section 4: no status mapping reduces unsupportable cases, and the flipping policies lose on the sample, so P0 stays. Default output is byte-identical (sha 75509079...). Nothing promoted or committed; decisions are listed in .scratch/phase5_checkpoint.md.
+
+Actions:
+* Created code/ghostledger/proof.py, code/tests/test_proof_model.py, .scratch/phase5/b4_ledger.py; edited .scratch/phase5/mut/b_mutation.py
+* Ran .scratch/phase5/a3/a3_stress.py, mut/b_mutation.py, b4_ledger.py, baseline.py after_b, python -m pytest code/tests (60 passed, 1 xfailed)
+* Rewrote .scratch/phase5_checkpoint.md (scratch file, not the log)
+
+Context:
+tool=Claude Code
+model=claude-opus-5-5
+branch=main
+repo_root=D:\oct26\hackerrank-orchestrate-october26
+worktree=main
+parent_agent=none
