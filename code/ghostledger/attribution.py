@@ -34,14 +34,21 @@ def request_pool(root):
     return list(seen.values())
 
 
-def edges(dataset, graph, pool):
-    reqs = [r for r in pool if classify(r["request_text"])[0]]
+def edges(dataset, graph, pool, as_of=None):
+    """as_of (experimental strict cutoff): only requests reported, rows logged and identity facts
+    recorded at or before as_of take part, so later activity cannot change an earlier assignment."""
+    reqs = [r for r in pool if classify(r["request_text"])[0] and (as_of is None or r["reported_at"] <= as_of)]
     rows = {a["activity_id"]: a for a in dataset.activity
             if a["source_system"] == "deletion_worker" and a["resource_id"].startswith("account_")
-            and a["event_type"] == "DELETE_RECORD"}
+            and a["event_type"] == "DELETE_RECORD" and (as_of is None or a["event_time"] <= as_of)}
     owners = defaultdict(set)
     for r in reqs:
-        for rid in graph.links(graph.subject(r["email"])):
+        if as_of is None:
+            linked = graph.links(graph.subject(r["email"]))
+        else:
+            linked = graph.links(graph.subject(r["email"], as_of), lambda o: o.file_captured_at <= as_of
+                                 and (o.observed_at or o.file_captured_at) <= as_of, as_of)
+        for rid in linked:
             owners[rid].add(r["case_id"])
     cand = defaultdict(set)
     for aid, a in rows.items():
@@ -141,7 +148,7 @@ def forced_edges(E):
             if comp[("c", c)] != comp[("r", a)] and ("r", a) not in from_free_c and ("c", c) not in to_free_r}
 
 
-def attribute(dataset, graph, pool):
+def attribute(dataset, graph, pool, as_of=None):
     """case_id -> (resource_id, activity_id) for unambiguously attributed primary-account rows."""
-    rows, open_ = edges(dataset, graph, pool)
+    rows, open_ = edges(dataset, graph, pool, as_of)
     return {c: (rows[a]["resource_id"], a) for c, a in forced_edges(open_).items()}

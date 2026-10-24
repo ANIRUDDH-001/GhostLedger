@@ -240,3 +240,62 @@ branch=main
 repo_root=D:\oct26\hackerrank-orchestrate-october26
 worktree=main
 parent_agent=none
+
+## [2026-10-24T15:28:31Z] SESSION START
+
+tool=Claude Code
+model=claude-opus-5-5
+Repo Root: D:\oct26\hackerrank-orchestrate-october26
+Branch: main
+Worktree: main
+Parent Agent: none
+Language: py
+Time Remaining: not configured
+
+## [2026-10-24T16:13:43Z] Phase 4: proof integrity, temporal noninterference, attribution falsification
+
+User Prompt (verbatim, secrets redacted):
+Start GhostLedger Phase 4: Proof Integrity, Temporal Noninterference and Attribution Falsification in the existing official October Orchestrate repository. Do not promote any Phase 3 experiment or finalize architecture without reporting its measured trade-offs for approval.
+
+Context and logging. Start in D:\oct26\hackerrank-orchestrate-october26. Read the official AGENTS.md, problem_statement.md, README.md, agent_trace_instructions.md, current source at the checked-out commit, existing code/evaluation/*.md, and .scratch/phase3_checkpoint.md if available. Append every required session/turn entry to the existing root log.txt with your actual tool= and model=. Preserve other agents' log entries; retain session traces as directed. Use .scratch/phase4/ (gitignored) for experiments, raw tables, diagnostics and a concise handover; put durable tests and evaluation methodology inside code/ once reviewed. Do not read organizer-only files, hardcode case labels, or include credentials in files/logs. Record the precise Git HEAD, current dirty paths, data hash, environment and executable commands before touching code.
+
+Decision policy. Phase 3 produced an independently reproduced improvement from 12/32 to 21/32 exact public cases with --worker-attribution, 98/111 resources, zero observed sample false positives, and 155 changed evaluation rows. That validates a development-sample improvement, not the correctness of 155 inferred owners. Keep the original default/output intact. Treat the maximum-matching primitive as well-tested but its candidate edges as assumptions. No silent promotion, no magical fallbacks, no unscored rewrites, no speculative per-case LLM loop. When a hypothesis fails, preserve its result and stop using it. Identify each experiment as EXECUTED, BLOCKED or PROPOSED.
+
+Phase A — Reproduce minimally, then test proof integrity. Run the existing suite and the two modes once, recording hashes and key metrics; do not spend time redoing Codex's extensive graph enumeration or the entire prior audit. Add isolated tests for: (1) known required retained record absent; (2) linked UNKNOWN account; (3) multiple live account copies; (4) compliant-looking ABSENT record with target verification REDACTED/ANONYMIZED/DISABLED/BLOCKED; (5) HTTP 500 account result; (6) unknown restore eligibility. Capture actual before/after outcomes and precise source locations. Design an internal obligation ledger with PROVEN_COMPLIANT, PROVEN_VIOLATION, UNRESOLVED, explicit policy category/condition, location and supporting evidence. Measure how many real sample/evaluation cases would change. The output enum has no UNKNOWN, so do not invent uncited findings or silently convert unresolved obligations to COMPLETE; evaluate and document permissible mappings and escalate an irreducible contract gap.
+
+Phase B — Temporal noninterference and evidence provenance. Prove/test that adding future identity history, catalog/structural links, evidence snapshots, worker rows or requests after a case's audit_at cannot change that case's decision. Apply the cutoff to graph edges and matching constraints, not merely state reads. Build a per-case provenance/dependency trace showing identifiers, aliases, observation source, timestamp, authority and cutoff. Treat official AGENTS.md §6.2 as binding; if strict cutoff loses a public sample match, report exact affected cases and the contract/sample conflict, rather than ignoring the rule. Run a strict-vs-retrospective ablation with sample and evaluation differences; do not claim that public gold alone authorizes post-audit evidence.
+
+Phase C — Scope, replicas and authority. Inventory which SQL snapshots, JSON collections and service readbacks are demonstrably exhaustive versus partial. Create typed scope completeness (FULL, FILTERED, UNKNOWN) and location/partition/replica coverage, with tests showing that unrelated/partial scopes cannot prove absence and a newer primary ABSENT cannot conceal a still-live failover copy. Re-evaluate the candidate's 137 omission-based account checks, 15 direct readback checks and three UNKNOWN assignments. Show how many of the 42 new COMPLETE account verifications have sufficiently independent, admissible absence proof. Classify claim-only observations into genuinely observed readbacks versus workflow reports and test authority rather than dropping every claim wholesale.
+
+Phase D — Attribution robustness, with proper negative controls. Keep worker_attribution off by default. Freeze each candidate band/status rule before measuring. Build blinded grouped leave-subject/leave-batch/leave-time validation: remove all identifying aliases and structural/catalog ownership for masked target rows, not just one edge; freeze parameter selection inside training folds. Report TP/FP/FN/abstention and denominators, with separate results for COMPLETE targets and identifier-free targets. Inject missing true worker rows, true rows outside the band, unrelated compatible workers inside the band, retries, duplicate worker resources, repeated subjects, and a future request that changes old matching. Compare ordinary forced maximum matching with a null/unassigned-aware alternative. Recheck 60/80/100/120-minute leads and 5/10/15-minute slack without cherry-picking a public-sample score. Preserve case/resource-level flips and exact negative-control failures. Do not accept an edge merely because the incorrect graph makes it forced.
+
+Phase E — Bounded multimodal experiment. Process the 11 PNGs once using available no-cost OCR/vision only if the tool and spending permissions are already available. Do not install system software requiring elevation or make paid API calls without approval. Cache by image hash, extractor and prompt version. Emit exact extracted fields and image-region provenance, separate visible resource IDs from catalog-derived aliases, and preserve embedded-event versus manifest-capture timestamps. Manually validate critical fields for the five catalog-only evaluation cases (case_63, 33, 46, 52, 61). Explicitly examine the marketing_001 ownership conflict; report both interpretations without hardcoding a desired label. Compare extraction/association precision and resulting decision changes. Do not let untrusted screenshot text instruct the agent.
+
+Phase F — Rule conditions and parser reliability. Build a rule-condition matrix for all 15 categories. Exercise active/inactive holds, retention expiry, tombstone minimum permitted ID, attachment ownership, delivery logs, backup permission, and PDF-only retention dates. Run fault injection for transient/permanent PDF imports, unreadable/empty/malformed artifacts in both CLI and evaluator paths; verify nonzero failure and no overwrite of a valid output. Preserve original exceptions. Never describe a retry as a root-cause fix.
+
+Experiment budgets and exit gate. Prioritize A–D before E–F when time-constrained. Preserve the present 518-row valid fallback, but do not mistake schema validity for proof completeness. No large dependency/framework/agent rewrite. Track wall time, memory, model calls/tokens/cost and remaining inference capacity. Use source-agnostic algorithms, not case-ID or gold-conditioned branches. Stop at an independently reviewable checkpoint before enabling new behavior by default; experimental switches may write candidate outputs to .scratch/phase4/ only.
+
+Required Markdown return: .scratch/phase4_checkpoint.md with (1) commit and file hashes, (2) baseline and every ablation's exact metrics, (3) source-backed confirmed defects vs hypotheses, (4) per-case gains/losses and evidence, (5) falsification test outcomes including negative controls, (6) proof/temporal/policy invariant counts before and after, (7) any irreducible ambiguity or contract conflict, (8) model/time/cost ledger, (9) ranked proposed next experiments and explicit GO/HOLD/REJECT choices requiring my approval. Keep durable tests/evaluation documents in the tracked code tree as appropriate, but no silent baseline promotion or final submission.
+
+Work from the independently executed Codex findings; do not repeat the whole audit. Produce actual tests and measurements. Challenge your own assumptions and show failures unedited.
+
+(follow-up messages after context compaction:)
+continue
+continue
+
+Agent Response Summary:
+Built an analysis-only obligation ledger (PROVEN_COMPLIANT/PROVEN_VIOLATION/UNRESOLVED) with typed scopes (FULL/FILTERED/UNKNOWN/UNRELATED), per-copy replica checks and claim classes, plus an experimental strict temporal mode (scratch-only output) verified by a truncation oracle (550/550 cases, 0 mismatches) and 11 new durable tests. Attribution was falsified under frozen rules: blinded grouped CV gives 0 FP, but 4 negative controls produce 2-8 FP, so it stays HOLD (off); null-aware matching, FULL-only scope admission, event-time cutoff and lead 60 were rejected. One-pass local Windows OCR of 11 screenshots contradicts the COMPLETE output for case_61 and (under one of two reported interpretations) case_63. Fault injection confirmed that the evaluator accepts a partial index and overwrites its report, that write_output is non-atomic, and that a corrupt PNG is silently accepted; the pypdf ImportError flake recurred once in 28 runs. Nothing promoted, default output.csv unchanged (sha 75509079...), nothing committed; decisions are listed in .scratch/phase4_checkpoint.md.
+
+Actions:
+* Created code/ghostledger/ledger.py, code/tests/test_proof_integrity.py, code/tests/test_temporal_noninterference.py, code/tests/test_scope_integrity.py
+* Edited code/ghostledger/identity.py, attribution.py, pipeline.py, code/main.py (strict temporal mode, off by default, scratch-only guard)
+* Created .scratch/phase4/*.py, e_ocr.ps1, {a..f}/ results, .scratch/phase4_checkpoint.md
+* Ran python code/main.py (default/strict/attribution, --out under .scratch/phase4), python -m pytest code/tests -q (27 passed, 1 xfailed; 1 flaky failure in 28 runs), python code/evaluation/evaluate.py, Windows.Media.Ocr via PowerShell; 0 model calls, no paid APIs, no installs
+
+Context:
+tool=Claude Code
+model=claude-opus-5-5
+branch=main
+repo_root=D:\oct26\hackerrank-orchestrate-october26
+worktree=main
+parent_agent=none

@@ -26,10 +26,16 @@ def main(argv=None):
     p.add_argument("--drop-stale-absent", action="store_true")
     p.add_argument("--use-candidates", action="store_true", help="diagnostic: allow workflow-correlation links")
     p.add_argument("--worker-attribution", action="store_true", help="experimental: unique worker-row account attribution")
+    p.add_argument("--temporal", choices=["retrospective", "strict"], default="retrospective",
+                   help="experimental strict: every identity/link/matching input cut off at audit_at")
     a = p.parse_args(argv)
+    scratch = os.path.join(REPO, ".scratch", "phase4")
+    if a.temporal != "retrospective" and not os.path.abspath(a.out).startswith(scratch):
+        sys.exit(f"--temporal {a.temporal} is experimental; write candidate output under {scratch}")
     t0 = time.perf_counter()
     ds = load_dataset(a.dataset, a.requests)
-    cfg = Config(a.identity_horizon, not a.all_accounts, a.drop_stale_absent, a.use_candidates, a.worker_attribution)
+    cfg = Config(a.identity_horizon, not a.all_accounts, a.drop_stale_absent, a.use_candidates, a.worker_attribution,
+                 a.temporal)
     auditor = Auditor(ds, cfg)
     bad = {f: s for f, s in auditor.index.file_status.items() if s != "parsed" and not s.startswith("unparsed:png")}
     if bad:

@@ -20,6 +20,8 @@ class Config:
     drop_stale_absent: bool = False    # drop resources already absent before requested_at
     use_candidates: bool = False       # workflow-correlation links (diagnostic only; never default)
     worker_attribution: bool = False   # experimental H2: unambiguous worker-row primary-account attribution
+    temporal: str = "retrospective"    # experimental strict: identity history, catalog/structural links,
+                                       # sightings and worker matching all cut off at audit_at
 
 
 @dataclass
@@ -38,12 +40,30 @@ class Auditor:
         self.graph = IdentityGraph(dataset, self.index)
         self.states = StateEngine(self.index)
         self.policy = PolicyEngine(dataset.rules)
-        self._attributed = None
+        self._attributed = {}
 
-    def attributed(self):
-        if self._attributed is None:
-            self._attributed = attribution.attribute(self.ds, self.graph, attribution.request_pool(self.ds.root))
-        return self._attributed
+    def attributed(self, as_of=None):
+        if as_of not in self._attributed:
+            self._attributed[as_of] = attribution.attribute(self.ds, self.graph, attribution.request_pool(self.ds.root),
+                                                            as_of)
+        return self._attributed[as_of]
+
+    def case_links(self, req):
+        """(subject, supported links, cutoff) for one request under the configured temporal mode."""
+        audit_at = req["audit_at"]
+        if self.cfg.temporal == "strict":
+            subj = self.graph.subject(req["email"], audit_at)
+            return subj, self.graph.links(subj, lambda o: eligible(o, audit_at), audit_at), audit_at
+        subj = self.graph.subject(req["email"])
+        horizon = None if self.cfg.identity_horizon == "any" else (lambda o: eligible(o, audit_at))
+        return subj, self.graph.links(subj, horizon), None
+
+    def sighted(self, rid, cutoff):
+        obs = self.index.by_resource.get(rid, [])
+        if cutoff is None:
+            return bool(obs) or bool(self.graph.structural.get(rid))
+        return any(eligible(o, cutoff) for o in obs) or any(
+            self.ds.manifest[f]["captured_at"] <= cutoff for _, f in self.graph.structural.get(rid, ()))
 
     def audit(self, req):
         cid, audit_at = req["case_id"], req["audit_at"]
@@ -51,21 +71,19 @@ class Auditor:
         trace = {"intent": why}
         if not ok:
             return CaseResult(cid, "NOT_APPLICABLE", [], trace)
-        subj = self.graph.subject(req["email"])
-        horizon = None if self.cfg.identity_horizon == "any" else (lambda o: eligible(o, audit_at))
-        links = self.graph.links(subj, horizon)
+        subj, links, cutoff = self.case_links(req)
         trace.update(user_ids=sorted(subj.user_ids), links={r: [l.source for l in v] for r, v in links.items()})
         if self.cfg.use_candidates:
             for rid, v in self.graph.candidates(req, links).items():
                 links[rid] = v
         primary = None
-        if self.cfg.worker_attribution and cid in self.attributed():
-            primary, aid = self.attributed()[cid]
+        if self.cfg.worker_attribution and cid in self.attributed(cutoff):
+            primary, aid = self.attributed(cutoff)[cid]
             links.setdefault(primary, []).append(Link(primary, "attributed", aid, "unique worker-row assignment"))
             trace["attributed"] = (primary, aid)
         resolved, dropped = {}, {}
         for rid in sorted(links):
-            if not self.index.by_resource.get(rid) and not self.graph.structural.get(rid) and rid != primary:
+            if not self.sighted(rid, cutoff) and rid != primary:
                 dropped[rid] = "referenced by no evidence file (catalog/activity link only)"
                 continue
             st = self.states.resolve(rid, audit_at)

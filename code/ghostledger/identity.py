@@ -66,7 +66,11 @@ class IdentityGraph:
                 self.structural[o.resource_id].add((l, o.file_id))
                 self.structural[l].add((o.resource_id, o.file_id))
 
-    def subject(self, email):
+    def subject(self, email, as_of=None):
+        """as_of (experimental strict cutoff): only identity history known at as_of; the current
+        identity row is rolled back through later audit_log changes. None = all history."""
+        if as_of is not None:
+            return self._subject_as_of(email, as_of)
         email = email.strip().lower()
         uids = set(self.email_to_users.get(email, set()))
         ids = {"email:" + email, "hash:" + sha(email)}
@@ -95,9 +99,41 @@ class IdentityGraph:
                         ids.add("phone:" + norm_phone(v))
         return Subject(email, uids, ids, hist)
 
-    def links(self, subject, eligible=None):
+    def _subject_as_of(self, email, as_of):
+        email = email.strip().lower()
+        known = {}                          # user_id -> {field: values known at as_of}
+        for u in self.email_to_users.get(email, set()):
+            r, vals = self.users.get(u), {"email": set(), "email_hash": set(), "phone": set()}
+            later = sorted((h for h in self.history.get(u, []) if h["event_time"] > as_of), key=lambda h: h["event_time"])
+            for f in vals:
+                first_later = next((h for h in later if h["field_name"] == f), None)
+                cur = first_later["old_value"] if first_later else (r or {}).get(f)
+                if cur:
+                    vals[f].add(cur)
+            hist = [h for h in self.history.get(u, []) if h["event_time"] <= as_of]
+            for h in hist:
+                for v in (h["old_value"], h["new_value"]):
+                    if v and h["field_name"] in vals:
+                        vals[h["field_name"]].add(v)
+            if email in {v.strip().lower() for v in vals["email"]}:
+                known[u] = (vals, hist)
+        ids = {"email:" + email, "hash:" + sha(email)}
+        hist_all = []
+        for u, (vals, hist) in known.items():
+            ids.add("user:" + u)
+            for v in vals["email"]:
+                ids.add("email:" + v.strip().lower())
+                ids.add("hash:" + sha(v.strip().lower()))
+            ids.update("hash:" + v.lower() for v in vals["email_hash"])
+            ids.update("phone:" + norm_phone(v) for v in vals["phone"])
+            hist_all.extend(hist)
+        return Subject(email, set(known), ids, hist_all)
+
+    def links(self, subject, eligible=None, as_of=None):
         """Return {resource_id: [Link]} for supported links. `eligible(obs)` restricts which
-        observations may establish identity (temporal horizon); None = any observation."""
+        observations may establish identity (temporal horizon); None = any observation.
+        as_of (experimental strict cutoff) also drops catalog rows and structural links recorded
+        after as_of."""
         out = defaultdict(list)
         for o in self.index.observations:
             if eligible is not None and not eligible(o):
@@ -109,11 +145,15 @@ class IdentityGraph:
                                                o.file_captured_at))
         for rid, rows in self.catalog.items():
             for aid, at, ids in rows:
+                if as_of is not None and at > as_of:
+                    continue
                 if ids & subject.identifiers:
                     out[rid].append(Link(rid, "supported", aid, "data catalog link", at))
         # one hop over explicit structural links from supported resources
         for rid in list(out):
             for other, fid in self.structural.get(rid, ()):
+                if as_of is not None and self.ds.manifest[fid]["captured_at"] > as_of:
+                    continue
                 if other not in out:
                     out[other].append(Link(other, "supported", fid, f"structural link to {rid}",
                                            self.ds.manifest[fid]["captured_at"]))
