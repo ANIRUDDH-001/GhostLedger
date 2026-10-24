@@ -209,6 +209,7 @@ def main(argv=None):
         "all_accounts": Config(one_primary_account=False),
         "drop_stale_absent": Config(drop_stale_absent=True),
         "with_candidates(diagnostic)": Config(use_candidates=True),
+        "worker_attribution(exp)": Config(worker_attribution=True),
     }
     report = {}
     for name, cfg in variants.items():

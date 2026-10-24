@@ -412,8 +412,15 @@ class EvidenceIndex:
         try:
             import pypdf
         except ImportError:
-            self.file_status[fid] = "unparsed:pypdf missing"
-            return
+            # an intermittent ImportError was seen once under pytest; retry once with fresh
+            # finder caches and keep the real error text so a failure is diagnosable
+            import importlib
+            importlib.invalidate_caches()
+            try:
+                import pypdf
+            except ImportError as e:
+                self.file_status[fid] = f"unparsed:pypdf import failed: {type(e).__name__}: {e}"
+                return
         import warnings
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")

@@ -2,8 +2,9 @@
 import csv
 from dataclasses import dataclass, field
 
+from . import attribution
 from .evidence import EvidenceIndex, prefix_of, system_of
-from .identity import IdentityGraph
+from .identity import IdentityGraph, Link
 from .intent import classify
 from .policy import FINDING_STATE, PREFIX_CATEGORY, REMEDIATION_STATE, PolicyEngine
 from .state import ResourceState, StateEngine, eligible
@@ -18,6 +19,7 @@ class Config:
     one_primary_account: bool = True   # keep only the most recently sighted linked account
     drop_stale_absent: bool = False    # drop resources already absent before requested_at
     use_candidates: bool = False       # workflow-correlation links (diagnostic only; never default)
+    worker_attribution: bool = False   # experimental H2: unambiguous worker-row primary-account attribution
 
 
 @dataclass
@@ -36,6 +38,12 @@ class Auditor:
         self.graph = IdentityGraph(dataset, self.index)
         self.states = StateEngine(self.index)
         self.policy = PolicyEngine(dataset.rules)
+        self._attributed = None
+
+    def attributed(self):
+        if self._attributed is None:
+            self._attributed = attribution.attribute(self.ds, self.graph, attribution.request_pool(self.ds.root))
+        return self._attributed
 
     def audit(self, req):
         cid, audit_at = req["case_id"], req["audit_at"]
@@ -50,9 +58,14 @@ class Auditor:
         if self.cfg.use_candidates:
             for rid, v in self.graph.candidates(req, links).items():
                 links[rid] = v
+        primary = None
+        if self.cfg.worker_attribution and cid in self.attributed():
+            primary, aid = self.attributed()[cid]
+            links.setdefault(primary, []).append(Link(primary, "attributed", aid, "unique worker-row assignment"))
+            trace["attributed"] = (primary, aid)
         resolved, dropped = {}, {}
         for rid in sorted(links):
-            if not self.index.by_resource.get(rid) and not self.graph.structural.get(rid):
+            if not self.index.by_resource.get(rid) and not self.graph.structural.get(rid) and rid != primary:
                 dropped[rid] = "referenced by no evidence file (catalog/activity link only)"
                 continue
             st = self.states.resolve(rid, audit_at)
@@ -72,7 +85,7 @@ class Auditor:
         if self.cfg.one_primary_account:
             accts = [r for r in resolved if prefix_of(r) == "account"]
             if len(accts) > 1:
-                keep = max(accts, key=lambda r: (resolved[r].observed_at, r))
+                keep = primary if primary in accts else max(accts, key=lambda r: (resolved[r].observed_at, r))
                 for r in accts:
                     if r != keep:
                         dropped[r] = f"superseded by more recently sighted account {keep}"

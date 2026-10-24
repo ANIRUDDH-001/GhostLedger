@@ -133,3 +133,110 @@ branch=main
 repo_root=D:\oct26\hackerrank-orchestrate-october26
 worktree=main
 parent_agent=none
+
+## [2026-10-24T14:08:11Z] SESSION START
+
+tool=Claude Code
+model=claude-opus-5-5
+Repo Root: D:\oct26\hackerrank-orchestrate-october26
+Branch: main
+Worktree: main
+Parent Agent: none
+Language: py
+Time Remaining: not configured
+
+## [2026-10-24T14:25:30Z] Phase 3: evidence-driven investigation, H2 attribution experiment
+
+User Prompt (verbatim, secrets redacted):
+Continue GhostLedger — Phase 3: Evidence-Driven Investigation and Optimization.
+We are working in the existing repository `D:\oct26\hackerrank-orchestrate-october26`.
+1. Restore context
+Read the official `AGENTS.md`, `problem_statement.md`, `README.md`, the latest code, evaluation reports, Phase 2 checkpoint, reachability analysis and any `.scratch/` handover.
+Follow the official logging requirements. Append to the existing root `log.txt`, recording the exact harness and runtime model. Do not overwrite previous entries.
+Check the current Git commit, working tree, available model resources and remaining inference budget.
+2. Establish the verified baseline
+Before making changes, independently reproduce the current metrics:
+
+* 32/32 sample status accuracy.
+* 12/32 exact-case matches.
+* 85/111 resource recall, with zero reported false positives.
+* 61/75 end-to-end evidence citation matches.
+* 518 generated output rows.
+* Existing tests, including the expected failure.
+* Reported contract violations, including `case_63`.
+
+If any measurement differs, investigate why before proceeding.
+3. Investigate the suspected failure mechanisms
+Treat the following as hypotheses requiring experimental validation, not predetermined conclusions:
+
+1. `COMPLETE` decisions made without sufficient evidence.
+2. Missing primary-account attribution and incorrectly suppressed historical account resources.
+3. Post-audit identity links influencing earlier audits.
+4. Operation claims being treated as authoritative state evidence.
+5. Replica inconsistencies and incorrect scope-based absence proofs.
+6. Incomplete application of retention and deletion-policy conditions.
+7. Unattributed anonymized analytics resources.
+8. Missing PNG evidence and contradictions between catalog associations and screenshot contents.
+
+For each hypothesis, identify the exact implementation mechanism, affected examples, observable impact and a falsifiable test.
+4. Run controlled experiments
+Prioritize experiments by expected impact on exact-case correctness, resource recall, evidence accuracy and policy compliance.
+Use isolated changes or ablation switches wherever practical. Preserve the current working baseline.
+Every experiment must report:
+
+* Baseline versus candidate metrics.
+* Exact cases and resources gained or lost.
+* False positives and false negatives.
+* Changes to step-level and exact-case accuracy.
+* Evidence and temporal-policy violations.
+* Runtime, model calls, tokens and cost.
+* Whether the result supports, weakens or falsifies the hypothesis.
+
+Do not optimize only for status accuracy. Do not hardcode sample answers, use organizer-only truth or infer hidden-test accuracy from the development examples.
+Test ambiguous and contradictory evidence explicitly. A successful sample match is insufficient if the mechanism creates unsupported attribution elsewhere.
+5. Decision policy
+Do not automatically integrate an experiment because one metric improves.
+Distinguish:
+
+* VERIFIED: supported by executed tests and reproducible results.
+* PROMISING: improvement observed but broader behavior remains uncertain.
+* REJECTED: contradicted by evidence or causes unacceptable regressions.
+* UNRESOLVED: insufficient evidence to decide.
+
+Keep candidate implementations separate until their trade-offs are evaluated.
+Do not introduce a full agent loop, new framework or additional model simply for architectural sophistication. Test such components when there is a concrete failure they could address.
+6. Deliverables
+Produce a concise Markdown checkpoint in `.scratch/` containing:
+
+1. Reproduced baseline and commit hash.
+2. Root-cause findings with code references.
+3. Experiments executed, configurations and numerical results.
+4. Per-case improvements and regressions.
+5. Remaining issues ranked by estimated impact and confidence.
+6. Recommended next experiments with rationale.
+7. Any decisions that require my approval.
+
+Preserve executable experiment code and reproducible commands.
+Do not finalize the architecture or promote a candidate as the new baseline without presenting comparative evidence.
+Our target is near-perfect correctness, including exact remediation sequences and evidence attribution—not a merely acceptable score.
+Start by reproducing the baseline, then investigate the highest-impact hypotheses experimentally. Report results and recommendations for review.
+
+(follow-up message after context compaction:)
+continue
+
+Agent Response Summary:
+Reproduced the Phase 2 baseline exactly at 9fbe022 (32/32 status, 12/32 exact, 85/111 recall, 0 FP, 61/75 citations, 518 rows, case_63 violation). Tested hypotheses H1-H8 with isolated scripts. The verified gain is H2: a global worker-row attribution of primary accounts. It uses a window plus reported_status/result compatibility and keeps only forced maximum-matching edges. On the sample it lifts exact cases to 21/32 and recall to 98/111 with 0 FP and no regressions. It is added only as an off-by-default switch (Config.worker_attribution / --worker-attribution), and promotion awaits user approval. Analytics timing attribution (H7) was rejected (FP>0). H3, H4 and H5 were rejected; H6 and H8 are unresolved. Added a PDF-import retry and a fail-loud guard; default output is unchanged byte-for-byte.
+
+Actions:
+* Created code/ghostledger/attribution.py; edited code/ghostledger/pipeline.py, code/ghostledger/evidence.py, code/main.py, code/evaluation/evaluate.py
+* Created .scratch/exp/*.py experiment scripts and .scratch/phase3_checkpoint.md
+* Ran python code/main.py (default and --worker-attribution, --out under .scratch), python code/evaluation/evaluate.py, python -m pytest code/tests -q, .scratch/validate_output.py
+* Root output.csv not regenerated; nothing committed
+
+Context:
+tool=Claude Code
+model=claude-opus-5-5
+branch=main
+repo_root=D:\oct26\hackerrank-orchestrate-october26
+worktree=main
+parent_agent=none

@@ -25,11 +25,15 @@ def main(argv=None):
     p.add_argument("--all-accounts", action="store_true", help="keep every linked account, not only the latest")
     p.add_argument("--drop-stale-absent", action="store_true")
     p.add_argument("--use-candidates", action="store_true", help="diagnostic: allow workflow-correlation links")
+    p.add_argument("--worker-attribution", action="store_true", help="experimental: unique worker-row account attribution")
     a = p.parse_args(argv)
     t0 = time.perf_counter()
     ds = load_dataset(a.dataset, a.requests)
-    cfg = Config(a.identity_horizon, not a.all_accounts, a.drop_stale_absent, a.use_candidates)
+    cfg = Config(a.identity_horizon, not a.all_accounts, a.drop_stale_absent, a.use_candidates, a.worker_attribution)
     auditor = Auditor(ds, cfg)
+    bad = {f: s for f, s in auditor.index.file_status.items() if s != "parsed" and not s.startswith("unparsed:png")}
+    if bad:
+        sys.exit(f"evidence files failed to parse, refusing to write partial output: {bad}")
     results = auditor.run()
     write_output(results, a.out)
     counts = {}
