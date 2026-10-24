@@ -299,3 +299,24 @@ branch=main
 repo_root=D:\oct26\hackerrank-orchestrate-october26
 worktree=main
 parent_agent=none
+
+## [2026-10-24T16:48:31Z] Phase 5A reliability fixes (A1, A2, A4) after context compaction
+
+User Prompt (verbatim, secrets redacted):
+continue
+
+Agent Response Summary:
+Completed A1 (atomic, contract-checked output write), A2 (evidence-integrity taxonomy and a shared fatal gate in the CLI and evaluator) and A4 (resolved-path scratch containment). Default output is byte-identical (sha 75509079...), sample metrics are unchanged, the tests pass (45 passed, 1 xfailed), and all 19 fault scenarios preserve prior files. A3 and Phase 5B are not started; the usage limit was reached. Nothing committed.
+
+Actions:
+* Edited code/ghostledger/evidence.py, pipeline.py, code/main.py, code/evaluation/evaluate.py, code/tests/test_mechanisms.py
+* Created code/ghostledger/safeio.py, integrity.py, code/tests/test_reliability.py
+* Ran .scratch/phase5/baseline.py, a_faults.py, mut/a_mutation.py, pytest; wrote .scratch/phase5_checkpoint.md
+
+Context:
+tool=Claude Code
+model=claude-opus-5-5
+branch=main
+repo_root=D:\oct26\hackerrank-orchestrate-october26
+worktree=main
+parent_agent=none

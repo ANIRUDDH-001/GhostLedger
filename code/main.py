@@ -10,10 +10,22 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from ghostledger.integrity import IntegrityError, check  # noqa: E402
 from ghostledger.io import load_dataset  # noqa: E402
 from ghostledger.pipeline import Auditor, Config, write_output  # noqa: E402
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SCRATCH = os.path.join(REPO, ".scratch")
+
+
+def inside(path, root):
+    """True when path resolves to root or below it (symlinks, '..', case and separators normalized).
+    A sibling such as .scratch_x or a path on another drive is outside."""
+    p, r = (os.path.normcase(os.path.realpath(x)) for x in (path, root))
+    try:
+        return os.path.commonpath([p, r]) == r
+    except ValueError:  # different drives on Windows
+        return False
 
 
 def main(argv=None):
@@ -29,17 +41,17 @@ def main(argv=None):
     p.add_argument("--temporal", choices=["retrospective", "strict"], default="retrospective",
                    help="experimental strict: every identity/link/matching input cut off at audit_at")
     a = p.parse_args(argv)
-    scratch = os.path.join(REPO, ".scratch", "phase4")
-    if a.temporal != "retrospective" and not os.path.abspath(a.out).startswith(scratch):
-        sys.exit(f"--temporal {a.temporal} is experimental; write candidate output under {scratch}")
+    if a.temporal != "retrospective" and not inside(a.out, SCRATCH):
+        sys.exit(f"--temporal {a.temporal} is experimental; write candidate output under {SCRATCH}")
     t0 = time.perf_counter()
     ds = load_dataset(a.dataset, a.requests)
     cfg = Config(a.identity_horizon, not a.all_accounts, a.drop_stale_absent, a.use_candidates, a.worker_attribution,
                  a.temporal)
     auditor = Auditor(ds, cfg)
-    bad = {f: s for f, s in auditor.index.file_status.items() if s != "parsed" and not s.startswith("unparsed:png")}
-    if bad:
-        sys.exit(f"evidence files failed to parse, refusing to write partial output: {bad}")
+    try:
+        integrity = check(auditor.index)
+    except IntegrityError as e:
+        sys.exit(str(e))
     results = auditor.run()
     write_output(results, a.out)
     counts = {}
@@ -47,7 +59,8 @@ def main(argv=None):
         counts[r.status] = counts.get(r.status, 0) + 1
     print(f"wrote {len(results)} rows to {a.out} {counts} in {time.perf_counter() - t0:.1f}s; "
           f"observations={len(auditor.index.observations)} unparsed_files="
-          f"{sum(1 for v in auditor.index.file_status.values() if v != 'parsed')}; model_calls=0")
+          f"{sum(1 for v in auditor.index.file_status.values() if v != 'parsed')}; integrity={integrity['counts']}; "
+          f"model_calls=0")
     return results
 
 

@@ -21,6 +21,8 @@ sys.path.insert(0, os.path.dirname(HERE))
 REPO = os.path.dirname(os.path.dirname(HERE))
 
 from ghostledger.evidence import EvidenceIndex, prefix_of  # noqa: E402
+from ghostledger.integrity import IntegrityError, check  # noqa: E402
+from ghostledger.safeio import atomic_write_text  # noqa: E402
 from ghostledger.io import load_dataset, read_csv  # noqa: E402
 from ghostledger.pipeline import Auditor, Config  # noqa: E402
 from ghostledger.state import eligible  # noqa: E402
@@ -203,6 +205,10 @@ def main(argv=None):
     ds = load_dataset(a.dataset, "sample_deletion_requests.csv")
     gold = load_rows(os.path.join(a.dataset, "sample_output.csv"))
     index = EvidenceIndex(ds).build()
+    try:  # never score against a silently degraded index; the previous report is left untouched
+        integrity = check(index)
+    except IntegrityError as e:
+        sys.exit(str(e))
     variants = {
         "default": Config(),
         "horizon=audit": Config(identity_horizon="audit"),
@@ -230,8 +236,8 @@ def main(argv=None):
             fp.append(dict(case_id=cid, resource_id=rid, via=tr["links"].get(rid), state=tr["states"].get(rid)))
     out = dict(metrics=report, reachability={k: {kk: vv for kk, vv in v.items() if kk != "rows"} for k, v in reach.items()},
                per_case=default_cases, missing=missing, false_positives=fp)
-    with open(os.path.join(a.out_dir, "sample_eval.json"), "w", encoding="utf-8") as f:
-        json.dump(dict(out, reach_rows=reach), f, indent=1, ensure_ascii=False)
+    atomic_write_text(os.path.join(a.out_dir, "sample_eval.json"),
+                      json.dumps(dict(out, reach_rows=reach, integrity=integrity), indent=1, ensure_ascii=False))
     # console summary
     names = list(report)
     print("metric".ljust(30) + "".join(n[:16].rjust(17) for n in names))

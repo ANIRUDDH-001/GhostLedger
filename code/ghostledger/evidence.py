@@ -53,6 +53,89 @@ TRACE_SUBJECT_KEYS = {"lookup_key", "match_key", "subject_key", "subject_ref", "
 
 STATES = {"PRESENT", "ABSENT", "IDENTIFIABLE", "ANONYMIZED", "REDACTED", "ACTIVE", "DISABLED", "BLOCKED"}
 
+# Integrity details (see integrity.py). A parser exception whose text names one of these error
+# types means the file content itself is malformed rather than the parser failing to run.
+NO_TEXT = "no text extracted"
+MALFORMED_ERRORS = ("JSONDecodeError", "UnicodeDecodeError", "OperationalError", "DatabaseError",
+                    "PdfStreamError", "PdfReadError", "EmptyFileError", "unknown JSON layout")
+PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+PNG_CHANNELS = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}
+
+
+def png_defect(path):
+    """Structural check of a PNG without an imaging library: signature, chunk CRCs, IHDR first,
+    IEND last, at least one IDAT, and (non-interlaced) the inflated size the header implies.
+    Returns None for a well-formed file, else a short defect description."""
+    import struct
+    import zlib
+    with open(path, "rb") as f:
+        data = f.read()
+    if not data.startswith(PNG_SIGNATURE):
+        return "png defect: bad signature"
+    pos, chunks, idat = len(PNG_SIGNATURE), [], []
+    while pos < len(data):
+        if pos + 12 > len(data):
+            return "png defect: truncated chunk header"
+        n, kind = struct.unpack(">I4s", data[pos:pos + 8])
+        body, crc = data[pos + 8:pos + 8 + n], data[pos + 8 + n:pos + 12 + n]
+        if len(body) < n or len(crc) < 4:
+            return f"png defect: truncated {kind!r} chunk"
+        if zlib.crc32(kind + body) & 0xffffffff != struct.unpack(">I", crc)[0]:
+            return f"png defect: CRC mismatch in {kind!r}"
+        chunks.append((kind, body))
+        if kind == b"IDAT":
+            idat.append(body)
+        pos += 12 + n
+    if not chunks or chunks[0][0] != b"IHDR" or chunks[-1][0] != b"IEND" or not idat:
+        return "png defect: missing IHDR/IDAT/IEND"
+    w, h, depth, ctype, _, _, interlace = struct.unpack(">IIBBBBB", chunks[0][1])
+    try:
+        raw = zlib.decompress(b"".join(idat))
+    except zlib.error as e:
+        return f"png defect: image data does not inflate ({e})"
+    if ctype in PNG_CHANNELS and not interlace:
+        expected = h * (1 + (w * PNG_CHANNELS[ctype] * depth + 7) // 8)
+        if len(raw) != expected:
+            return f"png defect: image data is {len(raw)} bytes, header implies {expected}"
+    return None
+
+
+def import_state(e, name):
+    """Diagnostic snapshot of the import machinery after an ImportError for module `name`.
+    Records paths, finder caches and the exception chain; never environment variable values."""
+    import sys
+    import threading
+    import time
+    import traceback
+    chain, x = [], e
+    while x is not None and len(chain) < 5:
+        chain.append(f"{type(x).__name__}: {x}")
+        x = x.__cause__ or x.__context__
+    finders = {}
+    for entry in sys.path:
+        f = sys.path_importer_cache.get(entry)
+        info = {"finder": type(f).__name__ if f is not None else None,
+                "is_dir": os.path.isdir(entry), "has_module_dir": os.path.isdir(os.path.join(entry or ".", name))}
+        cache = getattr(f, "_path_cache", None)
+        if cache is not None:
+            info["cached_mtime"] = getattr(f, "_path_mtime", None)
+            info["name_in_cache"] = name in cache
+            info["cache_size"] = len(cache)
+        try:
+            info["mtime_now"] = os.stat(entry or ".").st_mtime
+        except OSError as se:
+            info["stat_error"] = type(se).__name__
+        finders[entry] = info
+    return {"exception": f"{type(e).__name__}: {e}", "name": getattr(e, "name", None),
+            "path": getattr(e, "path", None), "chain": chain,
+            "traceback": traceback.format_exception(type(e), e, e.__traceback__)[-3:],
+            "sys_path": list(sys.path), "meta_path": [type(m).__name__ if not isinstance(m, type) else m.__name__
+                                                      for m in sys.meta_path],
+            "finders": finders, "loaded": sorted(k for k in sys.modules if k.split(".")[0] in (name, "cryptography")),
+            "cwd": os.getcwd(), "flags": {"isolated": sys.flags.isolated, "no_user_site": sys.flags.no_user_site,
+                                          "ignore_environment": sys.flags.ignore_environment},
+            "thread": threading.current_thread().name, "utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+
 
 def system_of(resource_id):
     m = RESOURCE_RE.fullmatch(resource_id or "")
@@ -233,6 +316,8 @@ class EvidenceIndex:
         self.observations = []
         self.scopes = []
         self.file_status = {}       # file_id -> parsed | unparsed:<reason> | error:<msg>
+        self.file_class = {}        # file_id -> (integrity class, detail), see build()
+        self.import_diagnostics = []
         self.by_resource = defaultdict(list)
 
     # -- helpers
@@ -409,18 +494,24 @@ class EvidenceIndex:
     # -- PDF documents: one observation per resource id mentioned; identifiers from the same
     # line block (row) when the document lists several subjects, else from the whole document.
     def parse_pdf(self, fid, path):
-        try:
-            import pypdf
-        except ImportError:
-            # an intermittent ImportError was seen once under pytest; retry once with fresh
-            # finder caches and keep the real error text so a failure is diagnosable
-            import importlib
-            importlib.invalidate_caches()
+        # Containment, not a fix: an intermittent ModuleNotFoundError for pypdf (root cause not
+        # established, see Phase 5 A3) is retried once with fresh finder caches. Every failed
+        # attempt is recorded in import_diagnostics, including attempts the retry recovered.
+        import importlib
+        errors = []
+        for _ in range(2):
             try:
                 import pypdf
+                break
             except ImportError as e:
-                self.file_status[fid] = f"unparsed:pypdf import failed: {type(e).__name__}: {e}"
-                return
+                errors.append(import_state(e, "pypdf"))
+                importlib.invalidate_caches()
+        if errors:
+            self.import_diagnostics.append({"file_id": fid, "recovered": len(errors) < 2, "attempts": errors})
+        if len(errors) == 2:
+            e = errors[-1]["exception"]
+            self.file_status[fid] = f"unparsed:pypdf import failed: {e}"
+            return
         import warnings
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -447,18 +538,59 @@ class EvidenceIndex:
         self.extra_documents[fid] = text
 
     def build(self):
+        """Parse every manifest file. file_status keeps the short legacy string; file_class records
+        (class, detail) per file for the integrity gate (integrity.py). A file that fails part-way
+        contributes nothing: its partial observations and scopes are rolled back."""
+        self.file_class = {}
         handlers = {"sql": self.parse_sql, "json": self.parse_json, "log": self.parse_log,
                     "txt": self.parse_txt, "pdf": self.parse_pdf}
         for fid, m in sorted(self.ds.manifest.items()):
             path = self.ds.path(m["file_path"])
             ext = path.rsplit(".", 1)[-1].lower()
+            if not os.path.isfile(path):
+                self.file_status[fid] = f"error:FileNotFoundError({m['file_path']!r})"
+                self.file_class[fid] = ("MISSING", m["file_path"])
+                continue
             h = handlers.get(ext)
             if not h:
-                self.file_status[fid] = f"unparsed:{ext} (no OCR backend)"
+                bad = png_defect(path) if ext == "png" else f"no parser for .{ext}"
+                if bad:
+                    self.file_status[fid] = f"error:{bad}"
+                    self.file_class[fid] = ("MALFORMED" if ext == "png" else "FAILED_PARSE", bad)
+                else:
+                    self.file_status[fid] = f"unparsed:{ext} (no OCR backend)"
+                    self.file_class[fid] = ("OPTIONAL_UNSUPPORTED", "png structure valid; no OCR backend in the default run")
                 continue
+            n_obs, n_scopes = len(self.observations), len(self.scopes)
+            detail = None
             try:
                 h(fid, path)
                 self.file_status.setdefault(fid, "parsed")
             except Exception as e:  # keep going; report the gap
                 self.file_status[fid] = f"error:{e!r}"
+                if isinstance(e, UnicodeDecodeError):  # its repr embeds raw file bytes (possibly PII)
+                    detail = f"error:UnicodeDecodeError({e.encoding}: {e.reason} at byte {e.start})"
+                    self.file_status[fid] = detail
+            if self.file_status[fid] != "parsed":
+                partial = {id(o) for o in self.observations[n_obs:]}
+                for rid in {o.resource_id for o in self.observations[n_obs:]}:
+                    self.by_resource[rid] = [o for o in self.by_resource[rid] if id(o) not in partial]
+                    if not self.by_resource[rid]:
+                        del self.by_resource[rid]
+                del self.observations[n_obs:], self.scopes[n_scopes:]
+                st = self.file_status[fid]
+                malformed = any(t in st for t in MALFORMED_ERRORS)
+                self.file_class[fid] = ("MALFORMED" if malformed else "FAILED_PARSE", st)
+                continue
+            new = self.observations[n_obs:]
+            late = [o for o in new if o.observed_at > o.file_captured_at]
+            if len(new) == 0 and len(self.scopes) == n_scopes:
+                text = getattr(self, "extra_documents", {}).get(fid)
+                self.file_class[fid] = ("EMPTY_EXTRACTION", NO_TEXT if text is not None and not text.strip()
+                                        else "content read, but no resource ids or enumerated scopes")
+            elif late:
+                self.file_class[fid] = ("NEEDS_REVIEW", f"{len(late)} record time(s) after the file capture time, "
+                                        f"e.g. {late[0].resource_id} at {late[0].observed_at}")
+            else:
+                self.file_class[fid] = ("PARSED", f"{len(new)} observations")
         return self

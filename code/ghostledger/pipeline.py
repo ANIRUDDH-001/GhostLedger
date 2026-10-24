@@ -1,5 +1,7 @@
 """Per-case audit: intent -> subject -> linked resources -> state at audit_at -> policy -> steps."""
 import csv
+import io
+import json
 from dataclasses import dataclass, field
 
 from . import attribution
@@ -7,6 +9,7 @@ from .evidence import EvidenceIndex, prefix_of, system_of
 from .identity import IdentityGraph, Link
 from .intent import classify
 from .policy import FINDING_STATE, PREFIX_CATEGORY, REMEDIATION_STATE, PolicyEngine
+from .safeio import atomic_write_text
 from .state import ResourceState, StateEngine, eligible
 
 RETAINED_CATEGORIES = {"SECURITY_AUDIT_LOG", "LEGAL_HOLD_RECORD"}
@@ -151,9 +154,26 @@ def case_sort_key(cid):
     return (head, int(num)) if num.isdigit() else (cid, 0)
 
 
+STATUSES = ("COMPLETE", "INCOMPLETE", "NOT_APPLICABLE")
+
+
+def serialize_output(results):
+    """Complete output.csv text, checked against the output contract before anything is written."""
+    buf = io.StringIO(newline="")
+    w = csv.writer(buf)
+    w.writerow(["case_id", "deletion_status", "steps_json"])
+    seen = set()
+    for r in sorted(results, key=lambda r: case_sort_key(r.case_id)):
+        steps = to_json(r.steps)
+        parsed = json.loads(steps)
+        if r.case_id in seen or r.status not in STATUSES or not isinstance(parsed, list) \
+                or [s["step_no"] for s in parsed] != list(range(1, len(parsed) + 1)) \
+                or (r.status == "NOT_APPLICABLE" and parsed):
+            raise ValueError(f"output row for {r.case_id!r} violates the output contract; nothing written")
+        seen.add(r.case_id)
+        w.writerow([r.case_id, r.status, steps])
+    return buf.getvalue()
+
+
 def write_output(results, path):
-    with open(path, "w", encoding="utf-8", newline="") as f:
-        w = csv.writer(f)
-        w.writerow(["case_id", "deletion_status", "steps_json"])
-        for r in sorted(results, key=lambda r: case_sort_key(r.case_id)):
-            w.writerow([r.case_id, r.status, to_json(r.steps)])
+    atomic_write_text(path, serialize_output(results))
