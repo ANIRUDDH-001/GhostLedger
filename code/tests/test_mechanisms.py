@@ -24,6 +24,7 @@ def run():
         ds = load_dataset(os.path.join(REPO, "dataset"), "sample_deletion_requests.csv")
         aud = Auditor(ds)
         _cache["res"] = {r.case_id: r for r in aud.run()}
+        _cache["file_status"] = aud.index.file_status
         _cache["gold"] = {r["case_id"]: (r["deletion_status"], json.loads(r["steps_json"]))
                           for r in read_csv(os.path.join(REPO, "dataset", "sample_output.csv"))}
     return _cache["res"], _cache["gold"]
@@ -45,6 +46,8 @@ class Mechanisms(unittest.TestCase):
 
     def test_07_pdf_attachment_with_requester_identifiers(self):
         # the only evidence is a PDF attachment carrying the requester's email and phone
+        run()
+        self.assertEqual(_cache["file_status"].get("evidence_58"), "parsed")
         self.check_resource("case_07", "support_001")
 
     def test_12_historical_hash_and_marketing_contact(self):

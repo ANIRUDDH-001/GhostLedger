@@ -72,3 +72,64 @@ branch=main
 repo_root=D:\oct26\hackerrank-orchestrate-october26
 worktree=main
 parent_agent=none
+
+## [2026-10-24T13:52:40Z] Phase 2 deterministic baseline: index, identity, state, policy, eval
+
+User Prompt (verbatim, secrets redacted):
+Start Phase 2 implementation for GhostLedger in the official October Orchestrate repository.
+Follow the released `AGENTS.md`, including append-only root `log.txt` entries with the correct `tool=` and `model=` values. Keep temporary experiments and context handovers in gitignored `.scratch/`. Use only participant-facing data; never inspect organizer truth or hardcode sample answers.
+Objective: Establish a reproducible evidence index, identity graph, temporal state engine, policy evaluator, step generator and sample evaluation harness.
+Implementation priorities:
+1. Build an executable baseline with the exact 518-row output contract and parsed-JSON evaluation.
+2. Parse the shared evidence files once into typed observations containing provenance, resource identity, location, category, state, timestamps and snapshot scope.
+3. Resolve historical and current identifiers. Separate candidate identity links from sufficiently supported links. Do not assign resources by timestamp proximity alone.
+4. Reconstruct resource states as of `audit_at`. Distinguish successful operation claims from observed outcomes, handle conflicting replicas, and require appropriate scoped evidence for absence.
+5. Apply all 15 deletion policies, including retention, anonymization, tombstones, active data flows and restore risks.
+6. Generate all findings, remediation actions and verification steps in the exact prescribed order.
+Required verification:
+* Reproduce or falsify the reported 83/111 resource reachability and 70/75 citation agreement. Provide the underlying per-case evidence.
+* Test the failure mechanisms represented by cases 05, 07, 12, 17, 27, 31 and 32 without writing case-specific logic.
+* Report case-status accuracy, resource precision/recall, exact step accuracy, evidence accuracy, sequence correctness and false-positive attribution.
+* Identify why the reportedly missing 28 sample resources were not linked, distinguishing genuinely absent evidence from parser gaps and ambiguous attribution.
+* Add three independent synthetic policy/temporal tests without calling them hidden-test accuracy.
+Produce an initial schema-valid output for all 518 requests, a runnable evaluation workflow and a brief Markdown checkpoint containing executed commands, measured metrics, defects, resource usage and the next recommended experiment.
+Stop before implementing a per-case LLM agent loop or expensive model integration. We will review measured failures before deciding what additional AI capability earns its place.
+Do not claim completion based solely on a valid CSV or passing unit tests. Show the actual sample performance and remaining limitations.
+
+Agent Response Summary:
+Built the deterministic GhostLedger pipeline under code/ghostledger: an evidence index (SQL, JSON, logs, txt, PDF), an identity graph that keeps supported links apart from candidate links, a temporal state engine, a policy evaluator, a step generator and code/main.py, plus the sample harness code/evaluation/evaluate.py. Measured on the sample: status accuracy 1.000, resource precision 1.000, recall 0.766 (85/111), 0 false positives, exact cases 12/32. Phase 1's 83/111 is not reproduced exactly (measured 85/111 any-horizon, 77/111 audit-horizon), and 70/75 is falsified as an end-to-end figure (61/75; oracle 74/75). Timestamp-window candidate links are diagnostic only: they produced 340 false positives. Model calls: 0.
+
+Actions:
+* Created code/ghostledger/{io,evidence,identity,intent,state,policy,steps,pipeline}.py, code/main.py, code/evaluation/evaluate.py, code/tests/test_mechanisms.py
+* Ran python code/main.py and code/evaluation/evaluate.py repeatedly while fixing defects (trace-merge leak, scope absence overriding sightings, retained/unknown drops, structural account links)
+* Kept experiments in gitignored .scratch/ (sample_eval.json, debug scripts)
+
+Context:
+tool=Claude Code
+model=claude-opus-5-5
+branch=main
+repo_root=D:\oct26\hackerrank-orchestrate-october26
+worktree=main
+parent_agent=none
+
+## [2026-10-24T13:52:40Z] Continue Phase 2: synthetic tests, output, checkpoint
+
+User Prompt (verbatim, secrets redacted):
+continue
+
+Agent Response Summary:
+Investigated a pytest-only test_07 failure: it did not reproduce in 15 later runs, and the test now asserts that the PDF evidence parsed so a recurrence names its cause. Added three synthetic policy/temporal tests on fictional fixtures (10 passed, 1 expected failure). Regenerated output.csv with 518 rows (INCOMPLETE 348, COMPLETE 160, NOT_APPLICABLE 10); the schema check found one contract violation, case_63 COMPLETE with [] (its evidence is an unparsed screenshot). Wrote the Phase 2 checkpoint, a per-resource reachability table, and interim evaluation and usage reports. Largest measured gap: primary-account attribution (16 sample resources; 262/508 evaluation cases lack an account step).
+
+Actions:
+* Created code/tests/test_synthetic.py; edited code/tests/test_mechanisms.py
+* Ran python -m pytest code/tests -q, python code/main.py, python code/evaluation/evaluate.py, python code/evaluation/render_reachability.py
+* Wrote code/evaluation/phase2_checkpoint.md, phase2_reachability.md, render_reachability.py, evaluation_report.md, usage_report.md
+* Regenerated root output.csv; schema check via .scratch/validate_output.py
+
+Context:
+tool=Claude Code
+model=claude-opus-5-5
+branch=main
+repo_root=D:\oct26\hackerrank-orchestrate-october26
+worktree=main
+parent_agent=none
