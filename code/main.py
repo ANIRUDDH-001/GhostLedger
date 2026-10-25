@@ -10,6 +10,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from ghostledger import contract  # noqa: E402
 from ghostledger.integrity import IntegrityError, check  # noqa: E402
 from ghostledger.io import load_dataset  # noqa: E402
 from ghostledger.pipeline import Auditor, Config, write_output  # noqa: E402
@@ -37,7 +38,8 @@ def main(argv=None):
     p.add_argument("--all-accounts", action="store_true", help="keep every linked account, not only the latest")
     p.add_argument("--drop-stale-absent", action="store_true")
     p.add_argument("--use-candidates", action="store_true", help="diagnostic: allow workflow-correlation links")
-    p.add_argument("--worker-attribution", action="store_true", help="experimental: unique worker-row account attribution")
+    p.add_argument("--no-worker-attribution", dest="worker_attribution", action="store_false",
+                   help="disable forced-edge worker-row account attribution (on by default)")
     p.add_argument("--temporal", choices=["retrospective", "strict"], default="retrospective",
                    help="experimental strict: every identity/link/matching input cut off at audit_at")
     a = p.parse_args(argv)
@@ -53,7 +55,11 @@ def main(argv=None):
     except IntegrityError as e:
         sys.exit(str(e))
     results = auditor.run()
-    write_output(results, a.out)
+    try:
+        write_output(results, a.out, gate=contract.gate(ds.requests, contract.corpus(ds, auditor.index)),
+                     order=[r["case_id"] for r in ds.requests])
+    except contract.ContractError as e:
+        sys.exit(str(e))
     counts = {}
     for r in results:
         counts[r.status] = counts.get(r.status, 0) + 1

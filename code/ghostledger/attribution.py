@@ -3,10 +3,12 @@
 A deletion-worker DELETE_RECORD row on account_* is a candidate for a request when it falls inside
 [max(requested_at, reported_at - LEAD), reported_at + SLACK] and its reported_result is compatible
 with the request's reported_status. Rows whose resource is identifier-linked to another request are
-excluded, and requests that already have exactly one identifier-linked candidate row are settled.
+excluded, as are rows whose account carries identifiers of users other than the requester
+(Phase 7 veto: an account whose evidence names someone else is never attributed by timing), and
+requests that already have exactly one identifier-linked candidate row are settled.
 An edge is accepted only if it belongs to every maximum matching of the remaining bipartite graph
 (Dulmage-Mendelsohn: matched edge not on an alternating cycle and not reachable from a free vertex),
-so an ambiguous row is never assigned. Off by default; enabled with Config(worker_attribution=True).
+so an ambiguous row is never assigned. On by default since Phase 7 (Config(worker_attribution=False) disables).
 """
 import glob
 import os
@@ -34,6 +36,27 @@ def request_pool(root):
     return list(seen.values())
 
 
+def identifier_users(graph):
+    """identifier -> user_ids, over every user's current and historical identifiers."""
+    out = defaultdict(set)
+    for u, row in graph.users.items():
+        for i in graph.subject(row["email"]).identifiers:
+            out[i].add(u)
+    return out
+
+
+def account_users(graph, rid, id_users, as_of=None):
+    """Users named by any identifier on the account's observations or catalog rows (as_of: known by then)."""
+    ids = set()
+    for o in graph.index.by_resource.get(rid, ()):
+        if as_of is None or (o.file_captured_at <= as_of and (o.observed_at or o.file_captured_at) <= as_of):
+            ids |= o.identifiers
+    for _, at, cids in graph.catalog.get(rid, ()):
+        if as_of is None or at <= as_of:
+            ids |= cids
+    return set().union(*(id_users.get(i, ()) for i in ids)) if ids else set()
+
+
 def edges(dataset, graph, pool, as_of=None):
     """as_of (experimental strict cutoff): only requests reported, rows logged and identity facts
     recorded at or before as_of take part, so later activity cannot change an earlier assignment."""
@@ -50,10 +73,17 @@ def edges(dataset, graph, pool, as_of=None):
                                  and (o.observed_at or o.file_captured_at) <= as_of, as_of)
         for rid in linked:
             owners[rid].add(r["case_id"])
+    id_users = identifier_users(graph)
+    named = {rid: account_users(graph, rid, id_users, as_of) for rid in {a["resource_id"] for a in rows.values()}}
+    req_users = {r["case_id"]: (graph.subject(r["email"]) if as_of is None else graph.subject(r["email"], as_of)).user_ids
+                 for r in reqs}
     cand = defaultdict(set)
     for aid, a in rows.items():
         t = _t(a["event_time"])
         for r in reqs:
+            others = named[a["resource_id"]]
+            if others and not others & req_users[r["case_id"]]:
+                continue   # the account's own evidence names a different user
             lo = max(_t(r["requested_at"]), _t(r["reported_at"]) - LEAD)
             if lo <= t <= _t(r["reported_at"]) + SLACK and a["reported_result"] in COMPAT.get(r["reported_status"], ()):
                 cand[r["case_id"]].add(aid)

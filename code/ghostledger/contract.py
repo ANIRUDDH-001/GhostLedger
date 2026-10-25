@@ -1,7 +1,8 @@
 """Output-contract validation (AGENTS.md 6.3-6.6, problem_statement.md "Rules"), in two layers.
 
 structural  validate() checks a complete output.csv text against the requests and the corpus of
-            participant-visible ids: header and row shape, one row per case in numeric order,
+            participant-visible ids: header and row shape, one row per case in input order (the
+            organizers' ruling; the supplied request files are also in numeric case_id order),
             statuses, exact step fields, consecutive step numbers, canonical order (phase, operation,
             system_id, resource_id), operation/state pairs, operation/resource kind, duplicate and
             conflicting steps, plan correspondence for INCOMPLETE rows, phase rules for COMPLETE rows,
@@ -27,6 +28,7 @@ import json
 import re
 from collections import defaultdict
 from dataclasses import dataclass
+from datetime import datetime
 
 from .evidence import prefix_of, system_of
 from .steps import FIELDS, OP_ORDER, PHASES
@@ -53,8 +55,24 @@ OP_PREFIX = {"REPORT_ACTIVE_DATA_FLOW": "data_flow", "DISABLE_DATA_FLOW": "data_
              "VERIFY_DATA_FLOW_DISABLED": "data_flow", "REPORT_RESTORE_RISK": "backup",
              "BLOCK_RESTORE": "backup", "VERIFY_RESTORE_BLOCKED": "backup"}
 TS_RE = re.compile(r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ$")
+STR_FIELDS = ("phase", "operation", "state", "system_id", "resource_id", "evidence_id")
 # reported, not failed: structurally permitted, but nothing in it proves the subject's state
 WARNINGS = {"EMPTY_COMPLETE"}
+
+
+def valid_ts(x):
+    """An ISO-8601 UTC second that exists on the calendar (2026-02-30 matches the pattern but is not a time)."""
+    if not isinstance(x, str) or not TS_RE.match(x):
+        return False
+    try:
+        datetime.strptime(x, "%Y-%m-%dT%H:%M:%SZ")
+    except ValueError:
+        return False
+    return True
+
+
+class ContractError(ValueError):
+    """Raised by the write-time gate; nothing is written."""
 
 
 @dataclass
@@ -96,17 +114,17 @@ def step_issues(cid, status, steps, audit_at, c):
         if not isinstance(s, dict) or set(s) != set(FIELDS):
             errs.append((cid, "FIELDS", str(sorted(s) if isinstance(s, dict) else s)))
             continue
-        if s["step_no"] != i:
-            errs.append((cid, "STEP_NO", f"{s['step_no']}!={i}"))
+        if type(s["step_no"]) is not int or s["step_no"] != i:   # True == 1 and 1.0 == 1 in Python
+            errs.append((cid, "STEP_NO", f"{s['step_no']!r}!={i}"))
+        if not all(isinstance(s[k], str) for k in STR_FIELDS):
+            errs.append((cid, "FIELD_TYPE", f"step {i}"))
+            continue
         ph, op = s["phase"], s["operation"]
         if ph not in OPS or op not in OPS[ph]:
             errs.append((cid, "OPERATION", f"{ph}/{op}"))
             continue
         if OPS[ph][op] != s["state"]:
             errs.append((cid, "STATE", f"{op}/{s['state']}"))
-        if not all(isinstance(s[k], str) for k in ("system_id", "resource_id", "evidence_id")):
-            errs.append((cid, "FIELD_TYPE", f"step {i}"))
-            continue
         good.append(s)
         pos = sort_key(s)
         if last is not None and pos < last:
@@ -133,7 +151,7 @@ def step_issues(cid, status, steps, audit_at, c):
         at = _citation_time(ev, c)
         if at is None:
             errs.append((cid, "UNKNOWN_EVIDENCE", ev))
-        elif not TS_RE.match(at or "") or not TS_RE.match(audit_at or ""):
+        elif not valid_ts(at) or not valid_ts(audit_at):
             errs.append((cid, "CITATION_TIME_UNKNOWN", f"{ev} {at!r}"))
         elif at > audit_at:
             errs.append((cid, "POST_AUDIT_CITATION", f"{ev} {at}"))
@@ -172,7 +190,6 @@ def _plan_issues(cid, seen):
 
 def validate(text, requests, c):
     """[(case_id, code, detail)] for every issue in a complete output.csv text (errors and WARNINGS)."""
-    from .pipeline import case_sort_key
     errs = []
     reader = csv.reader(io.StringIO(text))
     header = next(reader, None)
@@ -207,13 +224,24 @@ def validate(text, requests, c):
     missing = set(audit) - seen
     if missing:
         errs.append(("*", "MISSING_CASES", str(len(missing))))
-    if order != sorted(order, key=case_sort_key):
-        errs.append(("*", "CASE_ORDER", "not numeric case order"))
+    expected = [r["case_id"] for r in requests if r["case_id"] in seen]
+    if list(dict.fromkeys(c for c in order if c in audit)) != expected:
+        errs.append(("*", "CASE_ORDER", "rows not in input request order"))
     return errs
 
 
 def errors(text, requests, c):
     return [e for e in validate(text, requests, c) if e[1] not in WARNINGS]
+
+
+def gate(requests, c):
+    """Write-time check for pipeline.write_output: any structural error refuses the write."""
+    def check(text):
+        errs = errors(text, requests, c)
+        if errs:
+            shown = "; ".join(f"{cid} {code} {detail}" for cid, code, detail in errs[:10])
+            raise ContractError(f"{len(errs)} output-contract error(s), nothing written: {shown}")
+    return check
 
 
 # ---------------------------------------------------------------------------------------------

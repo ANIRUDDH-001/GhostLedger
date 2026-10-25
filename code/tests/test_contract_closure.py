@@ -131,6 +131,65 @@ class StructuralClosure(unittest.TestCase):
         self.assertEqual(codes("INCOMPLETE", []), {"EMPTY_STEPS"})
 
 
+class Phase7ValidatorGaps(unittest.TestCase):
+    """Gaps left open by the Phase 6 closure: JSON types that compare equal to valid values, values
+    the checks could not even hash, impossible calendar dates, and row order against the input file."""
+    OK = st("VERIFICATION", "account_1", "VERIFY_RECORD_ABSENT", "ev_a")
+
+    def test_step_no_must_be_an_integer(self):
+        for bad in (True, 1.0, "1"):
+            with self.subTest(bad):
+                steps = [dict(self.OK, step_no=bad)]
+                got = {e[1] for e in contract.step_issues("case_1", "COMPLETE", steps, AUDIT_AT, C)}
+                self.assertIn("STEP_NO", got)
+
+    def test_list_valued_fields_are_reported_not_raised(self):
+        for k in ("phase", "operation", "state", "system_id", "resource_id", "evidence_id"):
+            with self.subTest(k):
+                steps = [dict(self.OK, step_no=1, **{k: [self.OK[k]]})]
+                got = {e[1] for e in contract.step_issues("case_1", "COMPLETE", steps, AUDIT_AT, C)}
+                self.assertIn("FIELD_TYPE", got)
+
+    def test_impossible_calendar_dates_fail_closed(self):
+        c = contract.Corpus(dict(C.files, ev_feb30="2026-02-30T00:00:00Z"), C.rows, C.resources)
+        steps = [dict(st("VERIFICATION", "account_1", "VERIFY_RECORD_ABSENT", "ev_feb30"), step_no=1)]
+        got = {e[1] for e in contract.step_issues("case_1", "COMPLETE", steps, AUDIT_AT, c)}
+        self.assertEqual(got, {"CITATION_TIME_UNKNOWN"})
+
+    def test_rows_follow_input_order(self):
+        reqs = [{"case_id": "case_2", "audit_at": AUDIT_AT}, {"case_id": "case_1", "audit_at": AUDIT_AT}]
+        header = "case_id,deletion_status,steps_json\n"
+        good = header + "case_2,NOT_APPLICABLE,[]\ncase_1,NOT_APPLICABLE,[]\n"
+        bad = header + "case_1,NOT_APPLICABLE,[]\ncase_2,NOT_APPLICABLE,[]\n"
+        self.assertEqual(contract.errors(good, reqs, C), [])
+        self.assertIn("CASE_ORDER", {e[1] for e in contract.errors(bad, reqs, C)})
+
+    def test_writer_gate_refuses_contract_errors_and_keeps_previous_file(self):
+        import tempfile
+        from ghostledger.pipeline import CaseResult, write_output
+        reqs = [{"case_id": "case_1", "audit_at": AUDIT_AT}]
+        gate = contract.gate(reqs, C)
+        cited_late = [dict(st("VERIFICATION", "account_1", "VERIFY_RECORD_ABSENT", "ev_late"), step_no=1)]
+        with tempfile.TemporaryDirectory() as d:
+            p = os.path.join(d, "output.csv")
+            with open(p, "w", encoding="utf-8") as f:
+                f.write("previous\n")
+            with self.assertRaises(contract.ContractError) as e:
+                write_output([CaseResult("case_1", "COMPLETE", cited_late)], p, gate=gate)
+            self.assertIn("POST_AUDIT_CITATION", str(e.exception))
+            with open(p, encoding="utf-8") as f:
+                self.assertEqual(f.read(), "previous\n")
+            write_output([CaseResult("case_1", "COMPLETE", [dict(self.OK, step_no=1)])], p, gate=gate)
+            with open(p, encoding="utf-8") as f:
+                self.assertIn("ev_a", f.read())
+
+    def test_writer_uses_input_order_when_given(self):
+        from ghostledger.pipeline import CaseResult, serialize_output
+        rs = [CaseResult("case_1", "NOT_APPLICABLE", []), CaseResult("case_2", "NOT_APPLICABLE", [])]
+        text = serialize_output(rs, order=["case_2", "case_1"])
+        self.assertEqual([l.split(",")[0] for l in text.splitlines()[1:]], ["case_2", "case_1"])
+
+
 class SemanticClosure(unittest.TestCase):
     """Each negative has the same shape as a positive control; only what the cited id proves differs."""
 

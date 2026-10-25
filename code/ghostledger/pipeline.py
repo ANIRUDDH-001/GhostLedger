@@ -22,7 +22,7 @@ class Config:
     one_primary_account: bool = True   # keep only the most recently sighted linked account
     drop_stale_absent: bool = False    # drop resources already absent before requested_at
     use_candidates: bool = False       # workflow-correlation links (diagnostic only; never default)
-    worker_attribution: bool = False   # experimental H2: unambiguous worker-row primary-account attribution
+    worker_attribution: bool = True    # H2: forced-edge worker-row primary-account attribution (Phase 7 default)
     temporal: str = "retrospective"    # experimental strict: identity history, catalog/structural links,
                                        # sightings and worker matching all cut off at audit_at
 
@@ -157,13 +157,15 @@ def case_sort_key(cid):
 STATUSES = ("COMPLETE", "INCOMPLETE", "NOT_APPLICABLE")
 
 
-def serialize_output(results):
-    """Complete output.csv text, checked against the output contract before anything is written."""
+def serialize_output(results, order=None):
+    """Complete output.csv text, checked against the output contract before anything is written.
+    Rows follow `order` (the input request order) when given, else numeric case order."""
     buf = io.StringIO(newline="")
     w = csv.writer(buf)
     w.writerow(["case_id", "deletion_status", "steps_json"])
     seen = set()
-    for r in sorted(results, key=lambda r: case_sort_key(r.case_id)):
+    pos = {c: i for i, c in enumerate(order or ())}
+    for r in sorted(results, key=lambda r: (pos.get(r.case_id, len(pos)), case_sort_key(r.case_id))):
         steps = to_json(r.steps)
         parsed = json.loads(steps)
         if r.case_id in seen or r.status not in STATUSES or not isinstance(parsed, list) \
@@ -175,5 +177,9 @@ def serialize_output(results):
     return buf.getvalue()
 
 
-def write_output(results, path):
-    atomic_write_text(path, serialize_output(results))
+def write_output(results, path, gate=None, order=None):
+    """Atomic write; `gate` (contract.gate) sees the complete text first and raises to refuse it."""
+    text = serialize_output(results, order)
+    if gate is not None:
+        gate(text)
+    atomic_write_text(path, text)
