@@ -25,6 +25,7 @@ class Config:
     worker_attribution: bool = True    # H2: forced-edge worker-row primary-account attribution (Phase 7 default)
     temporal: str = "retrospective"    # experimental strict: identity history, catalog/structural links,
                                        # sightings and worker matching all cut off at audit_at
+    agent_links: str = ""              # path to validated investigator links (agent/investigator.py); "" = none
 
 
 @dataclass
@@ -44,6 +45,35 @@ class Auditor:
         self.states = StateEngine(self.index)
         self.policy = PolicyEngine(dataset.rules)
         self._attributed = {}
+
+    def agent_links(self):
+        """case_id -> [(resource_id, evidence_id, basis)] accepted by agent/validators.py; ids are re-checked here."""
+        if not hasattr(self, "_agent_links"):
+            self._agent_links = {}
+            if self.cfg.agent_links:
+                with open(self.cfg.agent_links, encoding="utf-8") as f:
+                    raw = json.load(f)
+                self._agent_links = {c: [tuple(x) for x in v if x[0] in self.index.by_resource and x[1] in self.ds.manifest]
+                                     for c, v in raw.items()}
+        return self._agent_links
+
+    def attributed_pool(self):
+        """Deletion-authorizing requests from every request file (the worker rows are shared)."""
+        if not hasattr(self, "_pool"):
+            self._pool = [r for r in attribution.request_pool(self.ds.root) if classify(r["request_text"])[0]]
+        return self._pool
+
+    def activity_by_resource(self):
+        if not hasattr(self, "_act"):
+            self._act = {}
+            for a in self.ds.activity:
+                self._act.setdefault(a["resource_id"], []).append(a)
+        return self._act
+
+    def activity_ids(self):
+        if not hasattr(self, "_aids"):
+            self._aids = {a["activity_id"] for a in self.ds.activity}
+        return self._aids
 
     def attributed(self, as_of=None):
         if as_of not in self._attributed:
@@ -79,6 +109,9 @@ class Auditor:
         if self.cfg.use_candidates:
             for rid, v in self.graph.candidates(req, links).items():
                 links[rid] = v
+        for rid, ev, basis in self.agent_links().get(cid, ()):
+            links.setdefault(rid, []).append(Link(rid, "supported", ev, basis))
+            trace.setdefault("agent_links", []).append((rid, ev, basis))
         primary = None
         if self.cfg.worker_attribution and cid in self.attributed(cutoff):
             primary, aid = self.attributed(cutoff)[cid]

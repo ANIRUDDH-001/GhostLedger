@@ -3170,3 +3170,122 @@ branch=main
 repo_root=D:\oct26\hackerrank-orchestrate-october26
 worktree=main
 parent_agent=none
+
+## [2026-10-25T03:16:21Z] Phase 7 Stage 3: bounded AI investigator, intent comparison, pilot
+
+User Prompt (verbatim, secrets redacted):
+Proceed with Stage 3 of the approved Phase 7 plan.
+I have pushed the current Stage 0–2 work to GitHub. Continue from the existing local state. Do not create branches, commit, push or modify root `output.csv`. Preserve the existing implementation and all `.scratch` experiments.
+The Stage 0–2 results are accepted as the current working candidate: 21/32 public exact cases, 98/111 resources recovered, and 101 passing tests with one expected failure, subject to continued qualification.
+Stage 3 objective: Build a genuine, bounded AI investigator with read-only tools, rigorous evidence validation, reproducible model usage, and measurable benefit.
+Follow the existing plan, with these requirements and corrections:
+1. Verify the actual starting state
+Confirm local HEAD, working-tree changes, the Stage 2 candidate, test results and output fingerprint.
+GitHub currently contains commit `012ff7d8f7060c6459277421b91751c3a2309d7f`.
+Do not assume that GitHub and the local working tree are identical.
+2. Build the agent architecture
+Implement the planned lightweight agent package with:
+
+* Model clients for accessible Gemini/Groq models.
+* Read-only, dataset-scoped investigative tools.
+* A bounded tool-calling loop.
+* Structured proposals and deterministic validators.
+* Rate limiting, caching, retries and timeouts.
+* Actual token/cost accounting.
+* Per-case tool, proposal and decision traces.
+* Safe deterministic fallback.
+
+Use the existing indexing, identity, state, policy and contract modules rather than duplicating them.
+No unnecessary agent framework or dependency expansion.
+3. Challenge the proposed intent-judging strategy
+The original plan suggests requiring regex and LLM agreement.
+Do not assume that agreement is the correct authorization rule.
+Both systems have demonstrated errors, including false rejection of legitimate deletion requests.
+Before selecting the final rule:
+
+* Freeze an independent positive, negative and ambiguous intent test set.
+* Include negation, quotation, conditional requests, multilingual requests, deletion-verification language and mixed clauses.
+* Compare the existing regex, v2.1, LLM-only and combined approaches.
+* Measure false authorizations and false rejections separately.
+* Examine every disagreement.
+* Do not classify an uncertain but legitimate deletion request as NOT_APPLICABLE merely because the two classifiers disagree.
+* Select the best defensible rule based on measured results.
+
+The 32 public examples do not independently validate NOT_APPLICABLE classification.
+4. Establish an AI proof-of-value pilot before scaling
+Start with a small, frozen set of diverse investigative questions.
+Measure whether the model actually:
+
+* Retrieves relevant evidence.
+* Identifies previously overlooked facts.
+* Resolves a supported ambiguity.
+* Detects contradictions.
+* Correctly refuses unsupported conclusions.
+* Improves authorization decisions.
+* Produces evidence-backed changes the deterministic engine can safely accept.
+
+A verbatim quoted span alone is not proof. Validate ownership, temporal eligibility, source authority, physical-copy relevance and applicable policy treatment.
+Do not give the model authority to directly create output statuses or remediation operations.
+If the pilot succeeds, scale the qualified approach within the verified free-tier budget. If it fails, retain an advisory investigator and report the failure rather than forcing output changes.
+5. Recheck Stage 2 attribution safety
+Do not spend another entire phase on attribution, but preserve its known limitations in the new traces.
+The current veto does not necessarily reject accounts naming both the requester and another user, and identifier-free decoys remain capable of producing false matches.
+If the AI investigator investigates attribution, require genuine independent corroboration rather than an LLM's confidence score.
+Do not silently override a grounded ownership conflict.
+6. Provider usage
+You may use the existing Gemini and Groq free-tier credentials within legitimate verified quotas for the approved Stage 3 work.
+Current monetary budget remains ₹0.
+Verify model availability and project/organization limits before live calls. Do not assume multiple Gemini keys have independent project quotas.
+Never disclose credentials, circumvent limits or make paid calls.
+Use cached results wherever they are still valid.
+Record real input/output tokens and provider metadata. Do not report estimated billing as verified billing.
+7. Mandatory acceptance checks
+Before recommending Stage 3 integration:
+
+* Full existing test suite passes.
+* Frozen intent controls are evaluated.
+* No known false deletion authorization is promoted.
+* All agent-proposed facts have validated provenance.
+* Model failures safely fall back.
+* A no-key run reproduces the current deterministic Stage 2 output.
+* A cached replay of the same model-assisted run is deterministic.
+* Every changed evaluation case has an explainable trace.
+* No fabricated resource or evidence ID enters output.
+* The 518-case candidate passes the output contract.
+* Root `output.csv` remains unchanged.
+* No secrets or sensitive caches are included in tracked files.
+
+8. Reporting
+When Stage 3 finishes, provide:
+
+1. The implemented agent architecture and tools.
+2. Actual models, calls, tokens and recorded cost.
+3. Intent-classification comparison, including all failures.
+4. Number of investigative questions attempted.
+5. Number of model proposals accepted/rejected and why.
+6. Exact public-sample and 518-case output differences.
+7. New regressions and unresolved limitations.
+8. Proof that the model contributes meaningful investigative behavior.
+9. GO/HOLD decisions for individual components.
+10. Recommendation for Stage 4 based on measured evidence.
+
+Keep all experimental outputs under `.scratch/phase7/`. Retain the current 21/32 candidate as the rollback baseline.
+Execute Stage 3 now, with an evidence-backed pilot before broader inference. Prioritize genuine agent capability and better output decisions, not model-call volume. Do not begin Stage 4 until Stage 3 is qualified and reported.
+
+Agent Response Summary:
+Built code/ghostledger/agent/ (httpx Groq/Gemini clients with disk cache, usage ledger, RPM/TPM/RPD pacing, retries, timeouts, offline replay; read-only case-scoped Toolbox; bounded 6-step investigator; deterministic validators where timing is never ownership) and an inert Config(agent_links) hook. Intent comparison (Groq gpt-oss-120b, 25 calls) rejected AND(regex,LLM): it flips public case_19/31/32 (gold deletions) to NOT_APPLICABLE and inherits 13 multilingual false rejects; no rule changes any of the 508 eval authorizations, so v1 stays (LLM+v1keep is the HOLD candidate). Pilot on 12 frozen questions (Gemini 3.1 Flash Lite, 41 calls) gave 0 link proposals, 0 accepted, correct refusals of timing-only targets including the case_11 decoy; investigator HOLD as advisory, not scaled. Output unchanged vs Stage 2 (962f1fb9), contract 518 rows 0 errors, 110 tests pass + 1 xfail, cost recorded 0 (free tier, billing not verified). Report: .scratch/phase7/stage3_report.md. Stage 4 not started; nothing committed; root output.csv untouched.
+
+Actions:
+* Added code/ghostledger/agent/ (__init__, llm, tools, validators, prompts, investigator)
+* Edited code/ghostledger/pipeline.py (agent_links), .gitignore (.llm_cache/)
+* Added code/evaluation/intent_compare.py, agent_pilot.py, pilot_questions.json; code/tests/fixtures/intent_controls_p7.json; code/tests/test_agent.py
+* Runs: .scratch/phase7/intent, .scratch/phase7/pilot/run1 and run1_replay, .scratch/phase7/stage3_nokey
+* python -m pytest code/tests -q; contract.validate on stage3_nokey output
+
+Context:
+tool=Claude Code
+model=claude-opus-5-5
+branch=main
+repo_root=D:\oct26\hackerrank-orchestrate-october26
+worktree=main
+parent_agent=none

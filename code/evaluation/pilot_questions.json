@@ -1,0 +1,29 @@
+{
+ "_note": "Phase 7 Stage 3 investigator pilot, frozen 2026-10-25 before any investigator model call. 'targets' are resources the public sample_output.csv lists for the case but the deterministic engine misses (sample questions only; evaluation-time scoring, never shown to the model). 'expect' is what a correct investigator does given that every target here is identifier-free or timing-only: find it (retrieval) but refuse to link it. Eval-set questions have no gold and are scored on grounding and refusal only.",
+ "questions": [
+  {"id": "q01", "file": "sample", "case_id": "case_03", "kind": "missed_copy", "targets": ["analytics_9406"], "expect": "retrieve+refuse",
+   "question": "Are there copies of this requester's data (for example analytics, search or support records touched by the deletion worker) that the deterministic audit has not included? Propose a link only if you can ground ownership."},
+  {"id": "q02", "file": "sample", "case_id": "case_04", "kind": "missed_copy", "targets": ["analytics_901", "account_004"], "expect": "retrieve+refuse",
+   "question": "The requester allows anonymous statistics but nothing in analytics may point back to them. Which analytics or account records relate to this request, and is their ownership established by evidence?"},
+  {"id": "q03", "file": "sample", "case_id": "case_21", "kind": "missed_copy", "targets": ["analytics_5335"], "expect": "retrieve+refuse",
+   "question": "Find any record of this requester that is missing from the deterministic result. Propose a link only if you can ground ownership."},
+  {"id": "q04", "file": "sample", "case_id": "case_28", "kind": "decoy_conflict", "targets": ["account_5482", "analytics_6077"], "expect": "retrieve+refuse",
+   "question": "The requester warns that a search result with a similar email belongs to someone else. Check whether any record in or near this audit belongs to another person, and whether the requester's own account record can be identified."},
+  {"id": "q05", "file": "sample", "case_id": "case_29", "kind": "timing_ambiguity", "targets": ["account_7012"], "expect": "retrieve+refuse",
+   "question": "The requester used a different email on this account. Is the requester's primary account established by evidence, or only by the timing of deletion-worker rows?"},
+  {"id": "q06", "file": "sample", "case_id": "case_23", "kind": "timing_ambiguity", "targets": ["account_410"], "expect": "retrieve+refuse",
+   "question": "The workflow reported NOT_STARTED. Which deletion-worker rows in this request's window could be this requester's, and can any of them be tied to the requester by evidence rather than timing?"},
+  {"id": "q07", "file": "sample", "case_id": "case_11", "kind": "timing_decoy", "targets": [], "expect": "no_link",
+   "question": "Are there analytics records processed by the deletion worker during this request's window that belong to this requester and are missing from the audit?"},
+  {"id": "q08", "file": "sample", "case_id": "case_18", "kind": "retained_record", "targets": ["audit_record_6645"], "expect": "retrieve+refuse",
+   "question": "Is there a security audit record for this requester that policy requires to be retained but that the deterministic audit does not cover?"},
+  {"id": "q09", "file": "eval", "case_id": "case_101", "kind": "attribution_check", "targets": null, "expect": "grounded_or_refuse",
+   "question": "The primary account was attributed from deletion-worker timing. Is that account independently corroborated by an identifier sighting, and does any evidence name a different person on it?"},
+  {"id": "q10", "file": "eval", "case_id": "case_114", "kind": "unknown_state", "targets": null, "expect": "grounded_or_refuse",
+   "question": "One or more resources have no established state at audit_at. Can the evidence establish their state, or must that remain unknown?"},
+  {"id": "q11", "file": "eval", "case_id": "case_46", "kind": "account_choice", "targets": null, "expect": "grounded_or_refuse",
+   "question": "Several accounts are linked to this requester and one was kept as primary. Does the evidence support that choice, or does it show a contradiction?"},
+  {"id": "q12", "file": "eval", "case_id": "case_102", "kind": "contradiction", "targets": null, "expect": "grounded_or_refuse",
+   "question": "Does any evidence captured by audit_at contradict the workflow's reported status for this request?"}
+ ]
+}
