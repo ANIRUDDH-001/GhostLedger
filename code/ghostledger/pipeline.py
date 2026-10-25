@@ -15,6 +15,9 @@ from .state import RETAINED as RETAINED_CATEGORIES, ResourceState, StateEngine, 
 from .agent import validators
 from .steps import finalize, step, to_json
 
+# system_activity event types that do not change the record they name
+READ_ONLY_EVENTS = {"LINK_RESOURCE_IDENTITY", "CHECK_DATA_FLOW", "CHECK_RESTORE_ACCESS", "CLASSIFY_REQUEST"}
+
 
 @dataclass
 class Config:
@@ -79,11 +82,12 @@ class Auditor:
         return self._aids
 
     def last_operation(self, rid, audit_at):
-        """Time of the latest activity row on `rid` at or before audit_at (None: no known operation)."""
+        """Time of the latest activity row on `rid` at or before audit_at that can change the record
+        (None: no known operation). Catalog links, checks and intake rows only read or describe it."""
         if not self.cfg.absence_after_operation:
             return None
-        return max((a["event_time"] for a in self.activity_by_resource().get(rid, ()) if a["event_time"] <= audit_at),
-                   default=None)
+        return max((a["event_time"] for a in self.activity_by_resource().get(rid, ())
+                    if a["event_time"] <= audit_at and a["event_type"] not in READ_ONLY_EVENTS), default=None)
 
     def attributed(self, as_of=None):
         if as_of not in self._attributed:

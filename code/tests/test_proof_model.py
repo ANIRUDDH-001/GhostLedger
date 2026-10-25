@@ -250,6 +250,27 @@ class ProofModelRegressions(unittest.TestCase):
         self.assertEqual(citation(cp, "account_99881").authority, proof.AUTHORITATIVE)
         self.assertEqual(cp.proof_decision, "COMPLETE")
 
+    def test_9_omission_proves_absence_only_after_the_last_state_changing_operation(self):
+        sql = ("CREATE TABLE snapshot_scope (origin_system TEXT, captured_at TEXT);\n"
+               f"INSERT INTO snapshot_scope VALUES ('account_service', '{CAP}');\n"
+               "CREATE TABLE customer_profiles (resource_id TEXT, customer_reference TEXT, account_status TEXT, updated_at TEXT);\n"
+               f"INSERT INTO customer_profiles VALUES ('account_99891', 'user_9988', 'ACTIVE', '{CAP}');\n")
+        files = {"ev_b9q": (CAP, "sql", sql, "fixture_inventory"),
+                 "ev_b9l": records(LATER, [{"resource_id": "account_99892", "account_status": "ACTIVE", "email": EMAIL}])}
+
+        def act(etype, t="2026-09-12T00:00:00Z"):
+            return {"activity_id": "activity_99890", "event_time": t, "event_type": etype, "source_system": "x",
+                    "target_system": "account_service", "resource_id": "account_99892", "reported_result": "SUCCESS",
+                    "details": ""}
+        proven = [("VERIFICATION", "account_99892", "ABSENT", "ev_b9q")]
+        # a deletion attempt after the inventory: its omission says nothing about the record afterwards
+        res = build(files, [act("DELETE_RECORD")])[2]
+        self.assertEqual((ops(res), res.trace["unresolved"]), ([], {"account_99892": "UNKNOWN_STATE"}))
+        # a catalog link after the inventory changes no record: the omission still proves absence
+        self.assertEqual(ops(build(files, [act("LINK_RESOURCE_IDENTITY")])[2]), proven)
+        # control: the deletion attempt preceded the inventory
+        self.assertEqual(ops(build(files, [act("DELETE_RECORD", "2026-09-08T00:00:00Z")])[2]), proven)
+
 
 class AuthorityVersusIdentity(unittest.TestCase):
     """The same, correctly named evidence id passes or fails depending on what it can prove."""

@@ -4266,3 +4266,71 @@ branch=main
 repo_root=D:\oct26\hackerrank-orchestrate-october26
 worktree=main
 parent_agent=none
+
+## [2026-10-25T05:31:25Z] SESSION START
+
+tool=Claude Code
+model=claude-opus-5-5
+Repo Root: D:\oct26\hackerrank-orchestrate-october26
+Branch: main
+Worktree: main
+Parent Agent: none
+Language: py
+Time Remaining: not configured in repository (public event info: ~0d 6h 59m to 2026-10-25T12:30Z)
+
+## [2026-10-25T05:45:13Z] Final semantic qualification of q3; read-only activity fix (q4)
+
+User Prompt (verbatim, secrets redacted):
+Continue GhostLedger from the latest Phase 7X source, currently pushed at commit `46bfcc5`.
+Do not promote root `output.csv`, create commits, push or submit yet.
+I completed an independent review of Codex's isolated 11-case recovery experiment and your q3 recovery claims.
+Codex findings:
+
+* 0/11 newly exact cases; 0/13 new grounded resource links.
+* Independently reproduced Stage 2's 60 correct step-content matches and 13 missing verification steps across those 11 cases.
+* `account_004`, `audit_record_6645` and `audit_record_5569` have no exact occurrences in participant-visible source files outside the reference answer key.
+* The anonymous analytics records lack independently demonstrated subject ownership.
+* Global timing assignment and total-delay optimization failed ambiguity and missing-observation controls.
+* Codex's proposed candidate contains research abstentions and is not submission-ready.
+* There is no evidence-backed new attribution mechanism to integrate.
+
+Do not repeat the 11-case research or merge Codex's experimental predictions. Preserve your existing attribution, agent security and citation improvements.
+Your task is now a tightly scoped FINAL SEMANTIC QUALIFICATION of q3.
+
+1. Verify source and candidate. Record actual HEAD, working tree, q3 output hash (`95f40c90…` reported), root output hash and rollback hashes. Confirm the full q3 output and qualification report are reproducible.
+2. Resolve the COMPLETE/UNKNOWN logic. The official `AGENTS.md` requires every relevant copy, retained record and recreation path to have the required treatment before declaring COMPLETE. Audit all 37 unresolved obligations across 22 cases. Identify which are required, which are merely diagnostic and which genuinely prevent completion. Do not treat absence of a finding as evidence of compliance.
+3. Specifically adjudicate case_390. The customer-export manifest reports `account_7618` FOUND on April 3 and NOT_FOUND on April 9, at audit cutoff. Both are reported observations. Your q3 change removes the prior adverse finding and flips the case to COMPLETE. Establish whether an independent authoritative readback supports completion; if not, classify the status as unsupported and identify the correct contractual treatment without inventing a finding.
+4. Adjudicate empty COMPLETE cases 35 and 63, plus other cases where the proof ledger says COMPLETE is unproven. Distinguish contract-valid serialization from semantically justified completion. Where the official output schema cannot faithfully express uncertainty, document the exact conflict and evaluate the least unsound permissible behavior instead of fabricating compliance.
+5. Verify citation improvements independently. Re-evaluate q3 and the recovery baseline using identical semantic-checker rules. For all 17 re-cited cases, show the old and new evidence ID, eligibility, source authority, scope completeness, observation time and post-operation chronology. Explain whether 44→12 represents genuinely improved emitted proof rather than changes in defect counting.
+6. Assess the AI claim accurately. The positive end-to-end test simulates a missing deterministic link. It proves the pipeline can accept a grounded link; it does not establish a new live AI discovery. Preserve this improvement without claiming additional accuracy.
+7. Re-run qualification. Full test suite, public 32-case scoring, 518-case contract validation, semantic proof audit, obligation accounting, exact status and step diffs, and output fingerprints. Compare Phase 7 Stage 2, recovery and q3 separately.
+8. Produce deliverables. Save a reproducible qualification report, the actual q3 candidate CSV and full per-case/obligation diffs under `.scratch/phase7/`. Provide the exact file paths for independent external review. Do not replace the root output.
+
+Logging is mandatory: Read the exact `AGENTS.md` §5.1–5.4 specification before writing. Use the required SESSION START and individual per-turn formats, verbatim user prompts with secrets redacted, authentic timestamps, authoritative `tool=` and `model=`, and append-only corrections. Re-read every newly appended entry. Do not fabricate previous history.
+Exit criteria:
+
+* Which COMPLETE decisions are independently proven?
+* Which are unsupported?
+* Does q3 materially improve semantic correctness?
+* What exact output changes are warranted?
+* Can q3 safely be promoted, or what specific blocker remains?
+
+Make source-level fixes only when a concrete defect is reproducible. Do not conduct another broad research phase or model-call experiment.
+Return a concise GO/HOLD verdict grounded in actual candidate files, measurements and source evidence. No promotion without my explicit approval.
+
+Agent Response Summary:
+Rebuilt Stage 2 (962f1fb9), recovery (59bfeb6c) and q3 (95f40c90) byte-identically from their commits and scored all of them with one independent identical-rule checker (.scratch/phase7/final/final_qual.py). Found and fixed a reproducible defect: last_operation counted LINK_RESOURCE_IDENTITY catalog rows as record operations and dropped 5 valid post-operation omission steps (new test_proof_model test_9 fails on HEAD, passes with fix; 124 passed, 1 xfailed). Corrected candidate q4 (f7a445ef) = q3 + 5 steps, no status changes, public sample unchanged (21/32). Under identical rules unsupported COMPLETE verifications go 44 -> 16 (0 claim/pre-operation citations; 11 entailed-by-absence, 5 undeclared-scope), proven COMPLETE cases 127 -> 139 of 162; 23 COMPLETE rows (incl. empty 35, 63 and case_390) remain unproven because the schema cannot express UNKNOWN (INCOMPLETE needs a finding, contract NO_FINDING). Verdict GO for q4 pending explicit approval; root output.csv not changed. Disclosure: a transient git stash/stash pop used to test HEAD code truncated log.txt; it was restored from HEAD and the SESSION START block re-appended identically before this entry (diff vs HEAD is append-only).
+
+Actions:
+* Edited code/ghostledger/pipeline.py (READ_ONLY_EVENTS, last_operation), code/tests/test_proof_model.py (test_9)
+* Ran python -m pytest code/tests -q; code/main.py at 012ff7d, 6d09d0d, 0395157, HEAD, HEAD+fix; contract check on 518 and 32-sample outputs
+* Wrote .scratch/phase7/final/ (final_qual.py, final_tables.py, candidate CSVs, summary.json, per_case.csv, steps.csv, obligations.csv, unresolved.csv, recited.csv, q4_vs_*.diff, final_qualification_report.md)
+* No commits, pushes, or root output.csv changes
+
+Context:
+tool=Claude Code
+model=claude-opus-5-5
+branch=main
+repo_root=D:\oct26\hackerrank-orchestrate-october26
+worktree=main
+parent_agent=none
