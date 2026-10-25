@@ -123,20 +123,20 @@ class ProofIntegrity(unittest.TestCase):
                 {"resource_id": "backup_99542", "restore_allowed": True, "user_id": UID},
                 {"resource_id": "data_flow_99543", "enabled": True, "customer_reference": UID},
                 {"resource_id": "analytics_99544", "email": EMAIL}])})
-        # current (defect): each verification asserts a state the cited file shows as ABSENT
+        # fixed (Phase 7 final A1): an omission proves absence only, so no step asserts a treatment state
+        # the cited file never shows; every obligation stays open and is accounted in the trace
         self.assertEqual(r.status, "COMPLETE")
-        self.assertEqual(sorted(ops(r), key=lambda x: x[1]), [
-            ("VERIFICATION", "analytics_99544", "VERIFY_RECORD_ANONYMIZED", "ANONYMIZED", "ev_p4s"),
-            ("VERIFICATION", "backup_99542", "VERIFY_RESTORE_BLOCKED", "BLOCKED", "ev_p4s"),
-            ("VERIFICATION", "data_flow_99543", "VERIFY_DATA_FLOW_DISABLED", "DISABLED", "ev_p4s"),
-            ("VERIFICATION", "tombstone_99541", "VERIFY_RECORD_REDACTED", "REDACTED", "ev_p4s")])
+        self.assertEqual(ops(r), [])
+        self.assertEqual(r.trace["unresolved"], {
+            "analytics_99544": "OMISSION_DOES_NOT_ESTABLISH_ANONYMIZED",
+            "backup_99542": "OMISSION_DOES_NOT_ESTABLISH_BLOCKED",
+            "data_flow_99543": "OMISSION_DOES_NOT_ESTABLISH_DISABLED",
+            "tombstone_99541": "OMISSION_DOES_NOT_ESTABLISH_REDACTED"})
         for rid in ("tombstone_99541", "backup_99542", "data_flow_99543", "analytics_99544"):
             self.assertTrue(any(f.startswith("verify_state_mismatch") for f in led[rid].flags), rid)
             self.assertTrue(led[rid].basis.startswith("OMISSION:"), rid)
-        self.assertEqual(led["tombstone_99541"].status, ledger.UNRESOLVED)    # rule_15 preserves it
-        self.assertEqual(led["backup_99542"].status, ledger.UNRESOLVED)       # rule_14 retains it
-        self.assertEqual(led["data_flow_99543"].status, ledger.PROVEN_COMPLIANT)
-        self.assertEqual(led["analytics_99544"].status, ledger.PROVEN_COMPLIANT)
+            self.assertEqual(led[rid].status, ledger.UNRESOLVED, rid)
+            self.assertIn("omission does not establish", led[rid].reason)
 
     def test_5_http_500_account_readback(self):
         aud, r, led = build({

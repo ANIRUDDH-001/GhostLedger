@@ -18,12 +18,14 @@ PREFIX_CATEGORY = {
 # treatment -> (compliant states, finding op, remediation op, verification op, target state)
 TREATMENT = {
     "DELETE":    ({"ABSENT"}, "REPORT_REMAINING_RECORD", "DELETE_RECORD", "VERIFY_RECORD_ABSENT", "ABSENT"),
-    "REDACT":    ({"REDACTED", "ABSENT"}, "REPORT_EXPOSED_PII", "REDACT_RECORD", "VERIFY_RECORD_REDACTED", "REDACTED"),
-    "ANONYMIZE": ({"ANONYMIZED", "ABSENT"}, "REPORT_EXPOSED_PII", "ANONYMIZE_RECORD", "VERIFY_RECORD_ANONYMIZED", "ANONYMIZED"),
+    "REDACT":    ({"REDACTED"}, "REPORT_EXPOSED_PII", "REDACT_RECORD", "VERIFY_RECORD_REDACTED", "REDACTED"),
+    "ANONYMIZE": ({"ANONYMIZED"}, "REPORT_EXPOSED_PII", "ANONYMIZE_RECORD", "VERIFY_RECORD_ANONYMIZED", "ANONYMIZED"),
     "RETAIN":    ({"PRESENT", "IDENTIFIABLE", "REDACTED", "ANONYMIZED"}, None, None, "VERIFY_RECORD_PRESENT", "PRESENT"),
     "DISABLE":   ({"DISABLED", "ABSENT"}, "REPORT_ACTIVE_DATA_FLOW", "DISABLE_DATA_FLOW", "VERIFY_DATA_FLOW_DISABLED", "DISABLED"),
     "BLOCK":     ({"BLOCKED", "ABSENT"}, "REPORT_RESTORE_RISK", "BLOCK_RESTORE", "VERIFY_RESTORE_BLOCKED", "BLOCKED"),
 }
+# treatments that keep the record: policy requires it to remain, minus its identifiers / its link to the user
+PRESERVING = {"REDACT", "ANONYMIZE"}
 FINDING_STATE = {"REPORT_REMAINING_RECORD": "PRESENT", "REPORT_EXPOSED_PII": "PRESENT",
                  "REPORT_ACTIVE_DATA_FLOW": "ACTIVE", "REPORT_RESTORE_RISK": "ACTIVE"}
 REMEDIATION_STATE = {"DELETE_RECORD": "ABSENT", "REDACT_RECORD": "REDACTED", "ANONYMIZE_RECORD": "ANONYMIZED",
@@ -62,7 +64,18 @@ class PolicyEngine:
             return self._decide(rule["rule_id"], "BLOCK", state)
         if action == "RETAIN" and state == "ABSENT":
             return Decision(rule["rule_id"], "RETAIN", False, note="retained record missing; no allowed remediation")
+        if action in PRESERVING and state == "ABSENT":
+            # the record must remain (redacted / anonymized); a missing one is not a treated one
+            return Decision(rule["rule_id"], action, False, note="record policy preserves is missing; no allowed remediation")
         return self._decide(rule["rule_id"], action if action in TREATMENT else "DELETE", state)
+
+    @staticmethod
+    def omission_establishes(treatment):
+        """Whether omission from an enumerating capture can establish `treatment`'s required state.
+        An omission shows only that no copy is listed, which entails ABSENT: it cannot show that a
+        kept record had its identifiers removed (REDACTED) or its link cut (ANONYMIZED), nor read a
+        flow as DISABLED or a backup as BLOCKED (and rule_14 keeps the archive)."""
+        return treatment in TREATMENT and TREATMENT[treatment][4] == "ABSENT"
 
     @staticmethod
     def _decide(rule_id, treatment, state):

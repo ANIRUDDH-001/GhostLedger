@@ -54,6 +54,7 @@ class StateEngine:
     def __init__(self, index, scope_kinds=SCOPE_KINDS, in_file="per_location"):
         self.index = index
         self.in_file = in_file               # per_location (Phase 7) | max_severity (Phase 6 and earlier)
+        self.scope_filter = None             # (scope, audit_at, resource_id) -> may this capture prove absence?
         self.scopes_by_system = defaultdict(list)
         for s in index.scopes:
             if scope_kind(s) in scope_kinds:
@@ -127,7 +128,8 @@ class StateEngine:
         preferred over a collection that may be a selection; the latest wins within each kind."""
         cands = [s for s in self.scopes_by_system.get(system, [])
                  if s.file_captured_at <= audit_at and s.captured_at <= audit_at and resource_id not in s.resources
-                 and (after is None or s.captured_at >= after)]
+                 and (after is None or s.captured_at >= after)
+                 and (self.scope_filter is None or self.scope_filter(s, audit_at, resource_id))]
         return max(cands, key=lambda s: (s.location == "snapshot_scope", s.captured_at, s.file_id)) if cands else None
 
     @staticmethod

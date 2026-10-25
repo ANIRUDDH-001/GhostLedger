@@ -177,15 +177,15 @@ class ProofModelRegressions(unittest.TestCase):
         res, cp = assess(built)
         self.assertEqual(res.status, "COMPLETE")
         rids = ["analytics_99854", "backup_99852", "data_flow_99853", "tombstone_99851"]
+        # fixed (Phase 7 final A1): no step cites an omission for a treatment state it cannot show,
+        # and the omission no longer counts as proven compliance with DISABLE / ANONYMIZE either
+        self.assertEqual(res.steps, [])
+        self.assertEqual(cp.citations, [])
+        self.assertEqual(cp.unsupported_verifications, [])
         for rid in rids:
-            c = citation(cp, rid)
-            self.assertEqual((c.identity, c.authority, c.reading), ("SCOPE", "STATE_MISMATCH", "ABSENT"), rid)
-        self.assertEqual(sorted(cp.unsupported_verifications), rids)
-        # compliance and citation are separate: absence satisfies DISABLE and ANONYMIZE, and that
-        # compliance is proven (ENUMERATED), yet the cited capture cannot show DISABLED/ANONYMIZED
-        for rid in ("data_flow_99853", "analytics_99854"):
             p = by_rid(cp)[rid]
-            self.assertEqual((p.compliance, p.coverage, p.proven), (ledger.PROVEN_COMPLIANT, proof.ENUMERATED, True))
+            self.assertEqual((p.compliance, p.proven), (ledger.UNRESOLVED, False), rid)
+        self.assertEqual(cp.proof_decision, "UNRESOLVED")
         # control: a direct readback of a redacted tombstone supports VERIFY_RECORD_REDACTED
         res, cp = assess(build({"ev_b5c": records(CAP, [{"resource_id": "tombstone_99855", "user_id": UID,
                                                          "name": None, "email": None, "phone": None}])}))
@@ -201,11 +201,12 @@ class ProofModelRegressions(unittest.TestCase):
                                [{"resource_id": "account_99861", "account_status": "ACTIVE", "user_id": "user_9988"}]),
             "ev_b6b": records("2026-09-12T00:00:00Z", [other]),
             "ev_b6l": later}), typed=True)
-        self.assertEqual(ops(res), [("VERIFICATION", "account_99863", "ABSENT", "ev_b6s")])
-        c = citation(cp, "account_99863")
-        self.assertEqual((c.identity, c.authority), ("SCOPE", "OMISSION_UNADMITTED"))
+        # fixed (Phase 7 final A2): a FILTERED listing is no longer read as exhaustive, so no step
+        # cites it and the account stays an uncovered gap
+        self.assertEqual(ops(res), [])
         self.assertEqual(by_rid(cp)["account_99863"].coverage, proof.UNCOVERED)
-        self.assertEqual(cp.unsupported_verifications, ["account_99863"])
+        self.assertEqual(cp.unsupported_verifications, [])
+        self.assertIn("account_99863", cp.gaps)
         # control: a capture that declares its scope (snapshot_scope) and is not contradicted
         sql = ("CREATE TABLE snapshot_scope (origin_system TEXT, captured_at TEXT);\n"
                f"INSERT INTO snapshot_scope VALUES ('account_service', '{CAP}');\n"

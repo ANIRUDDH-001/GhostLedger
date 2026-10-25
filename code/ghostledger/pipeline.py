@@ -8,6 +8,7 @@ from . import attribution
 from .evidence import EvidenceIndex, prefix_of, system_of
 from .identity import IdentityGraph, Link
 from .intent import classify
+from .ledger import FILTERED, ScopeTyper
 from .policy import FINDING_STATE, PREFIX_CATEGORY, REMEDIATION_STATE, PolicyEngine
 from .safeio import atomic_write_text
 from .state import RETAINED as RETAINED_CATEGORIES, ResourceState, StateEngine, eligible
@@ -31,6 +32,8 @@ class Config:
     agent_links: str = ""              # path to validated investigator links (agent/investigator.py); "" = none
     absence_after_operation: bool = True   # an omission proves absence only if captured after the record's
                                            # last known operation (deletion attempt) at or before audit_at
+    reject_filtered_scopes: bool = True    # a capture shown to omit live records of its system (ledger.ScopeTyper
+                                           # FILTERED) is a selection and never proves another record absent
 
 
 @dataclass
@@ -48,6 +51,9 @@ class Auditor:
         self.index = index or EvidenceIndex(dataset).build()
         self.graph = IdentityGraph(dataset, self.index)
         self.states = StateEngine(self.index)
+        if self.cfg.reject_filtered_scopes:
+            typer = ScopeTyper(self)
+            self.states.scope_filter = lambda s, audit_at, rid: typer.status(s, audit_at, rid)[0] != FILTERED
         self.policy = PolicyEngine(dataset.rules)
         self._attributed = {}
 
@@ -167,6 +173,12 @@ class Auditor:
             if d is None:
                 dropped[rid] = f"no rule for category {st.category}"
                 continue
+            if st.state == "ABSENT" and not st.observations and not self.policy.omission_establishes(d.treatment):
+                # omitted by a capture: absence is all it shows, not the treatment state policy requires
+                st = resolved[rid] = ResourceState(rid, st.system_id, "UNKNOWN", st.category, "", "",
+                                                   f"{st.basis}; an omission does not establish {d.treatment}", [])
+                d = self.policy.evaluate(prefix_of(rid), st.category, "UNKNOWN", ret, audit_at)
+                d.note = "OMISSION_DOES_NOT_ESTABLISH_" + d.verification_state
             decisions[rid] = d
         incomplete = any(not d.compliant and d.finding and resolved[r].state != "UNKNOWN" for r, d in decisions.items())
         steps, unresolved = [], {}       # obligations whose required state the evidence does not establish
@@ -179,20 +191,21 @@ class Auditor:
                     steps.append(step("VERIFICATION", st.system_id, rid, d.verification, d.verification_state))
                 else:
                     dropped[rid] = "state at audit_at not established; cannot be cited as verified"
-                    unresolved[rid] = "UNKNOWN_STATE"
+                    unresolved[rid] = d.note if d.note.startswith("OMISSION_") else "UNKNOWN_STATE"
                 continue
             if d.treatment == "EXPIRED" or (not d.compliant and not d.finding):
                 dropped[rid] = d.note
+                if d.treatment != "EXPIRED":
+                    # a record policy keeps (retained, redacted or anonymized) is missing: no allowed
+                    # operation reports it, and it is not compliant either
+                    unresolved[rid] = "PRESERVED_RECORD_MISSING"
                 continue
             if not d.compliant:
                 steps.append(step("FINDING", st.system_id, rid, d.finding, FINDING_STATE[d.finding], st.evidence_id))
                 steps.append(step("REMEDIATION", st.system_id, rid, d.remediation, REMEDIATION_STATE[d.remediation]))
             ev = "" if incomplete else st.evidence_id
             if ev and st.state == "ABSENT" and not st.observations:
-                if d.verification_state != "ABSENT":
-                    # an omission proves absence, not the treatment state the step names: kept, but accounted
-                    unresolved[rid] = f"{d.verification_state}_BY_OMISSION"
-                elif st.scope != "snapshot_scope":
+                if st.scope != "snapshot_scope":
                     # omitted by a capture that does not declare full coverage of the system: kept (the
                     # public key cites such omissions), but not proof the record is gone everywhere
                     unresolved[rid] = "ABSENT_BY_UNDECLARED_SCOPE"

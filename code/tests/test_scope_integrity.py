@@ -86,9 +86,10 @@ class ScopeIntegrity(unittest.TestCase):
             "ev_c1b": records("2026-09-12T00:00:00Z", [other]),
             "ev_c1l": later_identity("account_99713")})
         self.assertEqual(r.status, "COMPLETE")
-        self.assertEqual(ops(r), [("VERIFICATION", "account_99713", "VERIFY_RECORD_ABSENT", "ev_c1s")])
+        # fixed (Phase 7 final A2): the FILTERED listing proves nothing, in the output or the ledger
+        self.assertEqual(ops(r), [])
         e = led["account_99713"]
-        self.assertIn("scope:FILTERED", e.flags)
+        self.assertFalse(e.basis.startswith("OMISSION:"), e.basis)
         self.assertEqual(e.status, ledger.UNRESOLVED)
 
     def test_undeclared_versus_declared_scope(self):

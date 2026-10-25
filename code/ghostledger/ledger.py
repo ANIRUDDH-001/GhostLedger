@@ -18,14 +18,14 @@ from collections import defaultdict
 from dataclasses import dataclass, field
 
 from .evidence import prefix_of, system_of
-from .policy import PREFIX_CATEGORY
+from .policy import PREFIX_CATEGORY, PRESERVING
 from .state import SEVERITY, eligible
 
 PROVEN_COMPLIANT, PROVEN_VIOLATION, UNRESOLVED, NOT_REQUIRED = (
     "PROVEN_COMPLIANT", "PROVEN_VIOLATION", "UNRESOLVED", "NOT_REQUIRED")
 RETAIN_CATEGORIES = {"SECURITY_AUDIT_LOG", "LEGAL_HOLD_RECORD"}
-# verification op target state for each treatment (policy.TREATMENT); ABSENT satisfies these
-# treatments in policy.py, but then the cited evidence shows ABSENT, not the verified state
+# verification op target state for each treatment (policy.TREATMENT); a cited file that shows ABSENT
+# does not show these states (policy.omission_establishes, policy.PRESERVING)
 NON_ABSENT_TARGET = {"REDACT": "REDACTED", "ANONYMIZE": "ANONYMIZED", "DISABLE": "DISABLED", "BLOCK": "BLOCKED"}
 AUTHORITATIVE_HTTP = {"200", "404"}
 FULL, FILTERED, UNKNOWN, UNRELATED = "FULL", "FILTERED", "UNKNOWN", "UNRELATED"
@@ -219,7 +219,14 @@ def obligations(auditor, req, scope_status=None, replicas=False, admit=frozenset
             e.status, e.reason = PROVEN_VIOLATION, "retained record missing; no output operation can report it"
             e.flags.append("unreportable_violation")
         elif st.state == "ABSENT" and d.treatment in NON_ABSENT_TARGET:
-            if cat in ("ACCOUNT_TOMBSTONE", "BACKUP_ARCHIVE"):
+            if basis.startswith("OMISSION:") and not auditor.policy.omission_establishes(d.treatment):
+                # the same rule the pipeline applies (policy.omission_establishes): a capture that does
+                # not list the record shows it absent, not redacted / anonymized / disabled / blocked
+                e.status, e.reason = UNRESOLVED, f"omission does not establish {NON_ABSENT_TARGET[d.treatment]}"
+            elif d.treatment in PRESERVING:
+                e.status, e.reason = UNRESOLVED, f"record policy preserves ({d.treatment}) is missing"
+                e.flags.append("preserved_record_missing")
+            elif cat in ("ACCOUNT_TOMBSTONE", "BACKUP_ARCHIVE"):
                 # rule_15 preserves the tombstone, rule_14 retains the archive: absence is not the
                 # required state, and the verification op would assert a state nobody observed
                 e.status, e.reason = UNRESOLVED, f"{cat} absent where policy preserves it"
