@@ -52,8 +52,8 @@ BASE_FILES = {"ev_n0": records("2026-09-10T00:00:00Z", [
     {"resource_id": "account_99610", "account_status": "DELETED", "user_id": UID}])}
 
 
-def run(files=None, users=None, audit=(), activity=(), requests=(CASE_P,)):
-    """-> {(temporal, worker_attribution): (status, steps)} for case_p."""
+def run(files=None, users=None, audit=(), activity=(), requests=(CASE_P,), case="case_p"):
+    """-> {(temporal, worker_attribution): (status, steps)} for `case` (default case_p)."""
     tmp = tempfile.mkdtemp()
     try:
         os.makedirs(os.path.join(tmp, "evidence", "records"))
@@ -70,8 +70,12 @@ def run(files=None, users=None, audit=(), activity=(), requests=(CASE_P,)):
         manifest = []
         for fid, (cap, ext, content) in (files or BASE_FILES).items():
             rel = f"evidence/records/{fid}.{ext}"
-            with open(os.path.join(tmp, rel), "w", encoding="utf-8") as f:
-                f.write(content if isinstance(content, str) else json.dumps(content))
+            if isinstance(content, bytes):
+                with open(os.path.join(tmp, rel), "wb") as f:
+                    f.write(content)
+            else:
+                with open(os.path.join(tmp, rel), "w", encoding="utf-8") as f:
+                    f.write(content if isinstance(content, str) else json.dumps(content))
             manifest.append({"file_id": fid, "file_path": rel, "origin": "synthetic_fixture", "captured_at": cap})
         write_csv(os.path.join(tmp, "evidence_files.csv"), ["file_id", "file_path", "origin", "captured_at"], manifest)
         ds = load_dataset(tmp, "fx_deletion_requests.csv")
@@ -79,7 +83,7 @@ def run(files=None, users=None, audit=(), activity=(), requests=(CASE_P,)):
         for temporal in ("retrospective", "strict"):
             for wa in (False, True):
                 r = next(x for x in Auditor(ds, Config(temporal=temporal, worker_attribution=wa)).run()
-                         if x.case_id == "case_p")
+                         if x.case_id == case)
                 out[(temporal, wa)] = (r.status, r.steps)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)

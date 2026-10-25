@@ -1,11 +1,9 @@
 """Output-contract validator (AGENTS.md section 6.3-6.6) and its tests.
 
-contract_errors() checks a complete output.csv text against the requests and the evidence corpus:
-header, one row per case with no duplicates, numeric case order, statuses, step fields, consecutive
-step numbers, phase and canonical operation order, operation/state pairs, citations (findings and
-COMPLETE verifications cite an eligible participant-visible id; future steps cite nothing),
-NOT_APPLICABLE with [], and no fabricated resource or system ids. Each check is killed by a
-targeted mutation below. Run: python -m pytest code/tests -q
+contract_errors() runs the structural layer of ghostledger/contract.py over a complete output.csv text
+(see that module for the full rule list). Each check here is killed by a targeted mutation; the
+Phase 6 closure checks (audit-row times, COMPLETE phase, full canonical order, plan correspondence,
+semantic citations) are in test_contract_closure.py. Run: python -m pytest code/tests -q
 """
 import csv
 import io
@@ -19,117 +17,25 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 REPO = os.path.dirname(os.path.dirname(HERE))
 
-from ghostledger.evidence import system_of  # noqa: E402
 from ghostledger.io import load_dataset  # noqa: E402
 from ghostledger.pipeline import Auditor, case_sort_key, serialize_output, write_output  # noqa: E402
+from ghostledger import contract  # noqa: E402
 from ghostledger.safeio import atomic_write_text  # noqa: E402
-from ghostledger.steps import FIELDS, OP_ORDER, PHASES  # noqa: E402
 
-OPS = {
-    "FINDING": {"REPORT_REMAINING_RECORD": "PRESENT", "REPORT_EXPOSED_PII": "PRESENT",
-                "REPORT_ACTIVE_DATA_FLOW": "ACTIVE", "REPORT_RESTORE_RISK": "ACTIVE"},
-    "REMEDIATION": {"DISABLE_DATA_FLOW": "DISABLED", "BLOCK_RESTORE": "BLOCKED", "DELETE_RECORD": "ABSENT",
-                    "REDACT_RECORD": "REDACTED", "ANONYMIZE_RECORD": "ANONYMIZED"},
-    "VERIFICATION": {"VERIFY_RECORD_ABSENT": "ABSENT", "VERIFY_RECORD_PRESENT": "PRESENT",
-                     "VERIFY_RECORD_REDACTED": "REDACTED", "VERIFY_RECORD_ANONYMIZED": "ANONYMIZED",
-                     "VERIFY_DATA_FLOW_DISABLED": "DISABLED", "VERIFY_RESTORE_BLOCKED": "BLOCKED"},
-}
-STATUSES = ("COMPLETE", "INCOMPLETE", "NOT_APPLICABLE")
+OPS, STATUSES = contract.OPS, contract.STATUSES
 
 
 def corpus(ds, index):
-    """Known ids: evidence files with capture times, activity/audit rows with event times, resources."""
-    files = {f: m["captured_at"] for f, m in ds.manifest.items()}
-    rows = {a["activity_id"]: a["event_time"] for a in ds.activity}
-    rows.update({a["audit_id"]: a.get("changed_at", "") for a in ds.audit_log})
-    resources = set(index.by_resource) | {a["resource_id"] for a in ds.activity if a.get("resource_id")}
-    return files, rows, resources
+    """(files, rows, resources) as before; rows are dated by user_audit_log.event_time (Phase 6 closure:
+    the earlier 'changed_at' key does not exist, so every audit citation passed the cutoff check)."""
+    c = contract.corpus(ds, index)
+    return c.files, {k: v[0] for k, v in c.rows.items()}, c.resources
 
 
 def contract_errors(text, requests, files, rows, resources):
-    """[(case_id, code, detail)] for every contract violation in a complete output.csv text."""
-    errs = []
-    reader = csv.reader(io.StringIO(text))
-    header = next(reader, None)
-    if header != ["case_id", "deletion_status", "steps_json"]:
-        errs.append(("*", "HEADER", str(header)))
-    audit = {r["case_id"]: r["audit_at"] for r in requests}
-    seen, order = set(), []
-    for rec in reader:
-        if len(rec) != 3:
-            errs.append(("*", "ROW_SHAPE", str(rec)[:80]))
-            continue
-        cid, status, raw = rec
-        order.append(cid)
-        if cid in seen:
-            errs.append((cid, "DUPLICATE", ""))
-        seen.add(cid)
-        if cid not in audit:
-            errs.append((cid, "UNKNOWN_CASE", ""))
-            continue
-        if status not in STATUSES:
-            errs.append((cid, "STATUS", status))
-        try:
-            steps = json.loads(raw)
-        except ValueError:
-            errs.append((cid, "JSON", raw[:60]))
-            continue
-        if not isinstance(steps, list):
-            errs.append((cid, "JSON", "not an array"))
-            continue
-        if status == "NOT_APPLICABLE":
-            if steps:
-                errs.append((cid, "NA_STEPS", str(len(steps))))
-            continue
-        if not steps and status == "INCOMPLETE":
-            errs.append((cid, "EMPTY_STEPS", status))
-        last = (-1, -1)
-        for i, s in enumerate(steps, 1):
-            if not isinstance(s, dict) or set(s) != set(FIELDS):
-                errs.append((cid, "FIELDS", str(sorted(s) if isinstance(s, dict) else s)))
-                continue
-            if s["step_no"] != i:
-                errs.append((cid, "STEP_NO", f"{s['step_no']}!={i}"))
-            ph, op = s["phase"], s["operation"]
-            if ph not in OPS or op not in OPS[ph]:
-                errs.append((cid, "OPERATION", f"{ph}/{op}"))
-                continue
-            if OPS[ph][op] != s["state"]:
-                errs.append((cid, "STATE", f"{op}/{s['state']}"))
-            pos = (PHASES.index(ph), OP_ORDER[ph].index(op))
-            if pos < last:
-                errs.append((cid, "ORDER", f"step {i} {ph}/{op}"))
-            last = pos
-            rid, ev = s["resource_id"], s["evidence_id"]
-            if rid not in resources:
-                errs.append((cid, "FABRICATED_RESOURCE", rid))
-            elif s["system_id"] != system_of(rid):
-                errs.append((cid, "SYSTEM", f"{rid}->{s['system_id']}"))
-            future = ph == "REMEDIATION" or (ph == "VERIFICATION" and status == "INCOMPLETE")
-            if future:
-                if ev != "":
-                    errs.append((cid, "FUTURE_CITED", f"step {i} {ev}"))
-                continue
-            if status == "COMPLETE" and ph != "VERIFICATION":
-                errs.append((cid, "COMPLETE_PHASE", ph))
-            if not ev:
-                errs.append((cid, "UNCITED", f"step {i} {ph}"))
-            elif ev in files:
-                if files[ev] > audit[cid]:
-                    errs.append((cid, "POST_AUDIT_CITATION", f"{ev} {files[ev]}"))
-            elif ev in rows:
-                if rows[ev] and rows[ev] > audit[cid]:
-                    errs.append((cid, "POST_AUDIT_CITATION", f"{ev} {rows[ev]}"))
-            else:
-                errs.append((cid, "UNKNOWN_EVIDENCE", ev))
-        if status == "INCOMPLETE" and not any(isinstance(s, dict) and s.get("phase") == "FINDING" for s in steps):
-            errs.append((cid, "NO_FINDING", ""))
-    missing = set(audit) - seen
-    if missing:
-        errs.append(("*", "MISSING_CASES", str(len(missing))))
-    if order != sorted(order, key=case_sort_key):
-        errs.append(("*", "CASE_ORDER", "not numeric case order"))
-    return errs
+    """[(case_id, code, detail)] errors (not warnings) from ghostledger.contract for a complete output.csv text."""
+    rows = {k: (v, None, None) if isinstance(v, str) else v for k, v in rows.items()}
+    return contract.errors(text, requests, contract.Corpus(files, rows, resources))
 
 
 _cache = {}
