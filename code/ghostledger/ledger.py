@@ -167,9 +167,14 @@ def obligations(auditor, req, scope_status=None, replicas=False, admit=frozenset
             if bad:
                 flags.append("indeterminate_readback:" + bad[0])
         else:
+            # eligible readings exist but every file only claims compliance (state.file_reading)
+            claimed = [o for o in sightings if o.state and eligible(o, audit_at)]
+            if claimed:
+                basis = "CLAIM"
+                flags.append("claim:" + claim_class(max(claimed, key=lambda o: o.observed_at), auditor.ds.manifest))
             retained = cat_hint in RETAIN_CATEGORIES
             if not retained:
-                st = auditor.states.scoped_absence(rid, audit_at)
+                st = auditor.states.scoped_absence(rid, audit_at, auditor.last_operation(rid, audit_at))
                 if st is not None:
                     scope = next(s for s in auditor.states.scopes_by_system[system_of(rid)]
                                  if s.file_id == st.evidence_id and s.captured_at == st.observed_at)
@@ -191,7 +196,9 @@ def obligations(auditor, req, scope_status=None, replicas=False, admit=frozenset
             cat = cat_hint
             rule = rules.get(cat) or {}
             out.append(Obligation(rid, system_of(rid), cat, rule.get("rule_id", ""), rule.get("condition", ""), "",
-                                  "UNKNOWN", basis, "", "", UNRESOLVED, "no eligible sighting and no enumerating scope",
+                                  "UNKNOWN", basis, "", "", UNRESOLVED,
+                                  "compliance only claimed; no direct reading or enumerating scope" if basis == "CLAIM"
+                                  else "no eligible sighting and no enumerating scope",
                                   links[rid], flags))
             continue
         ret = next((o.attrs.get("retention_until") for o in reversed(st.observations) if o.attrs.get("retention_until")), None)

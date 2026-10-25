@@ -10,9 +10,8 @@ from .identity import IdentityGraph, Link
 from .intent import classify
 from .policy import FINDING_STATE, PREFIX_CATEGORY, REMEDIATION_STATE, PolicyEngine
 from .safeio import atomic_write_text
-from .state import ResourceState, StateEngine, eligible
+from .state import RETAINED as RETAINED_CATEGORIES, ResourceState, StateEngine, eligible
 
-RETAINED_CATEGORIES = {"SECURITY_AUDIT_LOG", "LEGAL_HOLD_RECORD"}
 from .agent import validators
 from .steps import finalize, step, to_json
 
@@ -27,6 +26,8 @@ class Config:
     temporal: str = "retrospective"    # experimental strict: identity history, catalog/structural links,
                                        # sightings and worker matching all cut off at audit_at
     agent_links: str = ""              # path to validated investigator links (agent/investigator.py); "" = none
+    absence_after_operation: bool = True   # an omission proves absence only if captured after the record's
+                                           # last known operation (deletion attempt) at or before audit_at
 
 
 @dataclass
@@ -76,6 +77,13 @@ class Auditor:
         if not hasattr(self, "_aids"):
             self._aids = {a["activity_id"] for a in self.ds.activity}
         return self._aids
+
+    def last_operation(self, rid, audit_at):
+        """Time of the latest activity row on `rid` at or before audit_at (None: no known operation)."""
+        if not self.cfg.absence_after_operation:
+            return None
+        return max((a["event_time"] for a in self.activity_by_resource().get(rid, ()) if a["event_time"] <= audit_at),
+                   default=None)
 
     def attributed(self, as_of=None):
         if as_of not in self._attributed:
@@ -131,7 +139,7 @@ class Auditor:
                 retained = PREFIX_CATEGORY.get(prefix_of(rid)) in RETAINED_CATEGORIES
                 # partial captures cannot prove a retained record is gone; for other records an
                 # enumerating capture that omits it is evidence of absence
-                st = None if retained else self.states.scoped_absence(rid, audit_at)
+                st = None if retained else self.states.scoped_absence(rid, audit_at, self.last_operation(rid, audit_at))
                 if st is None:
                     obs = self.index.by_resource.get(rid, [])
                     st = ResourceState(rid, system_of(rid), "UNKNOWN", self.states._category([], [o.category for o in obs]),
@@ -176,9 +184,14 @@ class Auditor:
                 steps.append(step("FINDING", st.system_id, rid, d.finding, FINDING_STATE[d.finding], st.evidence_id))
                 steps.append(step("REMEDIATION", st.system_id, rid, d.remediation, REMEDIATION_STATE[d.remediation]))
             ev = "" if incomplete else st.evidence_id
-            if ev and st.state == "ABSENT" and d.verification_state != "ABSENT" and not st.observations:
-                # an omission proves absence, not the treatment state the step names: kept, but accounted
-                unresolved[rid] = f"{d.verification_state}_BY_OMISSION"
+            if ev and st.state == "ABSENT" and not st.observations:
+                if d.verification_state != "ABSENT":
+                    # an omission proves absence, not the treatment state the step names: kept, but accounted
+                    unresolved[rid] = f"{d.verification_state}_BY_OMISSION"
+                elif st.scope != "snapshot_scope":
+                    # omitted by a capture that does not declare full coverage of the system: kept (the
+                    # public key cites such omissions), but not proof the record is gone everywhere
+                    unresolved[rid] = "ABSENT_BY_UNDECLARED_SCOPE"
             steps.append(step("VERIFICATION", st.system_id, rid, d.verification, d.verification_state, ev))
         trace.update(states={r: (s.state, s.category, s.evidence_id, s.basis) for r, s in resolved.items()},
                      decisions={r: (d.rule_id, d.treatment, d.compliant) for r, d in decisions.items()},

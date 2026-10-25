@@ -3535,3 +3535,734 @@ branch=main
 repo_root=D:\oct26\hackerrank-orchestrate-october26
 worktree=main
 parent_agent=none
+
+## [2026-10-25T04:40:50Z] Log correction: recover verbatim prompt of the 04:09:42Z entry
+
+User Prompt (verbatim, secrets redacted):
+# GHOSTLEDGER — PHASE 7 CORRECTNESS RECOVERY & ACCURACY IMPROVEMENT
+
+## EXECUTION MODE — IMPLEMENT, VERIFY, MEASURE AND DELIVER
+
+You have approval to execute the corrective engineering work described below.
+
+**Do not enter another planning-only cycle. Do not stop after writing a report.**
+
+Our objective is to make GhostLedger substantially more accurate, evidence-grounded and competitive while preserving the substantial work already completed.
+
+We have approximately 21/32 exact public cases, 98/111 resource recall and a working deterministic engine with an experimental AI investigator.
+
+**21/32 is our current baseline, not our destination.**
+
+We have completed six research phases and Stage 3 of Phase 7. Further work must produce tangible, independently testable engineering improvements.
+
+You should challenge any incorrect premise in this prompt, but do so using actual source evidence and tests. Then implement the strongest defensible correction rather than simply documenting another problem.
+
+## 1. Non-negotiable operating constraints
+
+Work in the existing GhostLedger repository.
+
+- Do not create branches, commit or push.
+- Do not modify root `output.csv` without explicit approval.
+- Preserve `.scratch/` and all earlier experiments.
+- Keep Stage 2's 21/32 candidate as the rollback baseline.
+- Do not hardcode public sample answers, case-specific exceptions, resource IDs or hidden assumptions into production.
+- Do not invent resource ownership, evidence, missing records, states or timestamps.
+- Do not introduce invalid operations or statuses outside the official contract.
+- Do not spend money on inference.
+- Reuse existing cached experiments before considering additional free-tier model calls.
+- Continue authentic append-only logging required by `AGENTS.md`.
+- Maintain the full 518-row input ordering and organizer-approved output format.
+- Preserve all existing functionality unless a demonstrated defect justifies changing it.
+
+You have approval for local source changes, regression tests, scratch experiments, candidate outputs and evaluation reports.
+
+**You do not need further approval for routine local implementation or testing.**
+
+Use available tools, parallel analysis where safe, and existing experiments to accelerate the work. Avoid parallel writes to shared source files, output files or logs.
+
+Before changing code, verify the current local HEAD, working tree, latest tests and candidate fingerprints.
+
+For every substantial change, compare against the same frozen Stage 2 baseline.
+
+---
+
+# 2. VERIFIED BASELINE AND AUDIT FINDINGS
+
+The latest independent review of the uploaded GhostLedger source and scratch archives established the following:
+
+| Measurement | Result |
+|---|---|
+| Public exact cases | 21/32 |
+| Public resource recall | 98/111 |
+| Public resource precision | 1.000 |
+| Evaluation cases | 518 |
+| Current candidate steps | 3,040 |
+| Evaluation statuses | 160 COMPLETE / 348 INCOMPLETE / 10 NOT_APPLICABLE |
+| Tests in independent Linux run | 109 passed, 1 skipped, 1 xfailed |
+| Stage 3 accepted AI links | 0 |
+| Stage 3 output changes | 0 |
+
+The independent Linux test count differs from the Windows run because of a platform-specific skip.
+
+The root `output.csv` still contains the earlier 2,885-step baseline. Do not overwrite it.
+
+Stage 2 candidate SHA-256 prefix: `962f1fb9`.
+
+The complete source and `.scratch` archives have already been supplied for independent investigation. Their findings are summarized here, but you must inspect the actual local implementations and evidence rather than assuming the summaries are infallible.
+
+## Major finding A — Newly attributed COMPLETE verifications
+
+Stage 2 added 155 account verification steps:
+
+- 113 to INCOMPLETE cases.
+- 42 to COMPLETE cases.
+
+Of the 42 new COMPLETE verifications, **18 were flagged by the conservative scope analyzer**:
+
+- 14 rely on inventories classified FILTERED.
+- Four rely on inventories classified UNKNOWN completeness.
+
+These are not automatically proven wrong. They are assertions whose absence evidence does not meet the existing FULL-scope standard.
+
+Examples include cases 57, 103, 108, 111, 253, 260, 308, 309, 506 and 512.
+
+The existing structural validator accepts them.
+
+**Your task is to establish whether the actual source evidence justifies each verification.**
+
+## Major finding B — AI link acceptance can bypass proof validation
+
+The independent audit demonstrated a concrete cross-subject injection through the agent-link consumption boundary.
+
+Adversarial test:
+
+- Target case: `case_03`.
+- Injected resource: `search_001`, associated with another subject.
+- Existing evidence ID: `evidence_57`.
+- Result: the target case changed from COMPLETE to INCOMPLETE with an unrelated finding and remediation.
+
+The model proposal validator checks grounding, but the pipeline's agent-link loader does not repeat the same semantic verification before incorporating the link.
+
+**This is an actual trust-boundary defect. Fix it.**
+
+## Major finding C — The remaining public misses
+
+The 11 non-exact sample cases contain 13 missing resources.
+
+| Category | Missing resources | Cases |
+|---|---:|---|
+| Anonymized analytics attribution | 7 | 03, 04, 21, 25, 26, 27, 28 |
+| Missing or ambiguous account attribution | 4 | 04, 23, 28, 29 |
+| Audit records apparently absent from supplied evidence | 2 | 18, 20 |
+
+The seven missed analytics observations have no extracted subject identifiers.
+
+Some workflows overlap in time. Cases 25 and 26 are examples where timing alone cannot establish which analytics resource belongs to which requester.
+
+Do not invent relationships to recover these labels.
+
+**Investigate whether legitimate structural, historical, event-lineage or cross-source correlations can establish ownership.**
+
+If the information is absent, document that precisely rather than guessing.
+
+## Major finding D — State and policy correctness
+
+Known unresolved defects include:
+
+- Stale state selection in cases 86 and 390.
+- Claim-based COMPLETE verification citations.
+- Incorrect reconciliation across physical replicas.
+- Treatment-independent state compliance in experimental State Engine S.
+- UNKNOWN obligations disappearing from otherwise COMPLETE cases.
+- A synthetic missing required retained record yielding `COMPLETE, []`.
+- Ambiguous historical identity links and audit-cutoff behavior.
+
+Do not promote State Engine S wholesale.
+
+Reuse its valid chronology mechanisms only after testing claim authority, physical-copy identity and policy-specific treatment.
+
+## Major finding E — AI investigator
+
+Stage 3 used 66 live model calls and 103,579 tokens.
+
+It produced zero accepted new links and zero output improvements.
+
+Its abstention on unsupported timing-only links was appropriate.
+
+However, some reasoning was shallow, and the investigator could not overcome the absence of subject attribution evidence.
+
+More model calls using the same information and the same validator will not solve that structural limitation.
+
+**Redirect the AI toward tasks where its interpretation can provide independently verifiable value.**
+
+---
+
+# 3. PRIORITY P0 — QUALIFY AND CORRECT THE 42 COMPLETE VERIFICATIONS
+
+This is your first major task.
+
+Do not merely print the scope flags.
+
+Construct a complete, evidence-backed investigation for every one of the 42 newly attributed COMPLETE account verifications.
+
+For each case/resource pair, record:
+
+1. Case ID.
+2. Account resource ID.
+3. Worker activity attribution and candidate graph.
+4. Subject identifiers.
+5. Audit cutoff.
+6. Verification operation.
+7. Cited evidence ID.
+8. Actual file/location/row.
+9. Evidence capture and observation timestamps.
+10. Whether the evidence is a direct readback, operation claim or omission.
+11. Inventory completeness: FULL, FILTERED, UNKNOWN or other.
+12. Physical copies covered.
+13. Later eligible contradictions.
+14. Whether the account's required treatment is proven.
+15. Final classification and recommended correction.
+
+Use classifications such as:
+
+- DIRECTLY_PROVEN
+- VALID_FULL_SCOPE_OMISSION
+- RECOVERABLE_WITH_ALTERNATIVE_EVIDENCE
+- SUBJECT_ATTRIBUTION_UNCERTAIN
+- SCOPE_INSUFFICIENT
+- CLAIM_ONLY
+- CONTRADICTED
+- POLICY_INCOMPATIBLE
+
+### Required investigation
+
+For the 18 questionable verifications:
+
+- Inspect the actual cited inventory, its scope and query/filter semantics.
+- Determine whether the scope analyzer is correct.
+- Search for alternative eligible authoritative readbacks.
+- Examine independently stored physical copies.
+- Check whether the account-to-request attribution is supportable.
+- Explain whether a verification can legitimately remain.
+
+Do not automatically remove all 18.
+
+Do not automatically preserve them merely because the public sample improved.
+
+**Implement generalized fixes for whichever mechanisms are demonstrated to be wrong.**
+
+A valid scope correction should apply to all equivalent evidence, not a list of selected case IDs.
+
+### P0 acceptance gate
+
+Deliver:
+
+- A 42-row classification table.
+- An exact list of unsupported assertions and their reasons.
+- Actual fixes where a generalizable mechanism exists.
+- Regression tests for each corrected mechanism.
+- Before/after candidate outputs.
+- Public accuracy and precision delta.
+- Full 518-case semantic proof delta.
+- A quantified count of remaining questionable COMPLETE citations.
+
+If an assertion cannot be proven, do not relabel it as proven.
+
+---
+
+# 4. PRIORITY P0 — FIX THE AGENT-LINK TRUST BOUNDARY
+
+Reproduce the `case_03` / `search_001` / `evidence_57` adversarial test on the current code.
+
+Then correct the complete proposal lifecycle.
+
+A proposal must not become trusted merely because it was written to a JSON file by an earlier validator.
+
+The pipeline must ensure that accepted links are:
+
+- Bound to the correct case.
+- Bound to the correct subject.
+- Grounded in eligible source evidence.
+- Supported by a valid relationship, not just matching IDs.
+- Temporally admissible.
+- Consistent with applicable source authority.
+- Not contradicted by known ownership evidence.
+- Revalidated when consumed.
+
+Prefer a single authoritative validation interface reused during proposal acceptance and consumption, rather than two inconsistent sets of checks.
+
+Do not assume a quoted text span establishes semantic truth.
+
+Do not allow an agent proposal to replace or override a stronger directly established fact without a defensible conflict-resolution rule.
+
+### Mandatory adversarial tests
+
+Test:
+
+1. Resource belonging to another user.
+2. Correct resource with unrelated evidence ID.
+3. Fabricated resource ID.
+4. Fabricated evidence ID.
+5. Post-audit evidence.
+6. Timing-only account association.
+7. Conflicting ownership identifiers.
+8. Same resource associated with competing requests.
+9. Valid grounded proposal.
+10. A previously validated proposal altered before consumption.
+
+**All invalid proposals must be rejected without changing the final case output.**
+
+A legitimate positive control must still succeed.
+
+### P0 acceptance gate
+
+Demonstrate that the original cross-subject exploit no longer changes `case_03`.
+
+Run the full test suite and 518-case candidate evaluation.
+
+Report whether the patch affects any previously accepted agent facts.
+
+Do not simply disable all agent proposals to make the negative tests pass.
+
+---
+
+# 5. PRIORITY P1 — RECOVER THE REMAINING 13 MISSING RESOURCES
+
+This is the principal accuracy-improvement workstream.
+
+We need actual progress beyond 21/32, but not through unsupported matching.
+
+## A. Seven anonymized analytics resources
+
+Inspect the original evidence and system activity associated with each missing resource.
+
+Investigate possible relationships through:
+
+- Deletion-worker activity.
+- Export, deletion or anonymization job IDs.
+- Operation correlation IDs.
+- Batch membership.
+- Shared transaction or workflow identifiers.
+- Historical resource identifiers.
+- Historical account associations.
+- Source-file relationships.
+- Execution order.
+- Process lineage.
+- Data-flow dependencies.
+- Metadata relationships.
+- Temporal ordering, when independently corroborated.
+
+Ask:
+
+**Can an anonymized record be associated with the correct subject using evidence independent of mere timestamp proximity?**
+
+Do not assume it can.
+
+Where timing is the only relationship, explicitly classify the attribution as unresolved.
+
+## B. Four account associations
+
+Review the existing worker-attribution matching graph.
+
+Investigate:
+
+- Competing workers and requests.
+- Candidate graph completeness.
+- Missing worker rows.
+- Identifier-free decoys.
+- Direct account readbacks.
+- Historical email/hash/user references.
+- Request/event correlation.
+- Whether apparent forced edges remain forced under reasonable missing-data perturbations.
+
+The present ownership veto does not eliminate identifier-free decoys.
+
+Develop stronger corroboration or abstention criteria if supported by evidence.
+
+## C. Two apparently absent audit records
+
+Search participant-visible evidence comprehensively.
+
+Check structured rows, embedded content, PDFs, screenshots, logs and actual source files.
+
+If the records genuinely cannot be found, document:
+
+`NOT_RECOVERABLE_FROM_PARTICIPANT_EVIDENCE`
+
+Do not create synthetic observations.
+
+Do not hardcode sample reference answers.
+
+### P1 methodology
+
+For each of the 13 missing resources, construct a provenance chain:
+
+**Request → identity → activity → resource → eligible source → state → applicable policy → output step**
+
+Identify the first broken edge.
+
+For recoverable links, implement a general mechanism and evaluate it on independent negative controls.
+
+For ambiguous links, show competing hypotheses and explain why none is uniquely supported.
+
+### P1 acceptance gate
+
+Measure:
+
+- Additional public resources correctly recovered.
+- Newly introduced wrong resources.
+- Public exact-case changes.
+- Full evaluation-case output changes.
+- False assignments under decoy/missing-row controls.
+- Whether cited evidence genuinely proves the emitted step.
+
+If a change raises recall while introducing false-positive attribution, do not promote it automatically.
+
+**A higher exact score is desirable, but only defensible changes qualify.**
+
+---
+
+# 6. PRIORITY P1 — CORRECT STATE AND POLICY RECONSTRUCTION
+
+Address the known chronology and claim-authority defects through targeted implementation.
+
+Focus on:
+
+- Cases 86 and 390.
+- Latest eligible observations within a file.
+- Direct versus reported observations.
+- Different physical copies.
+- Same-timestamp contradictions.
+- Reported SUCCESS followed by direct PRESENT.
+- Reported NOT_FOUND versus authoritative absence.
+- Unknown inventory completeness.
+- Treatment-specific compliance.
+
+Do not blindly implement "claims never set state" if the claim may be relevant evidence of a possible violation.
+
+Distinguish reported state, independently established state and compliant treatment.
+
+### Required policy semantics
+
+For example:
+
+- DELETE requires proven absence.
+- REDACT requires evidence the prohibited identifying fields are removed.
+- ANONYMIZE requires evidence of sufficient unlinkability.
+- DISABLE requires the relevant process to be inactive.
+- BLOCK requires the restore path to be blocked.
+- RETAIN requires the relevant record to remain available.
+
+A globally favorable state must not automatically satisfy a different policy obligation.
+
+### Unresolved obligations
+
+Keep them explicitly represented internally.
+
+Do not silently drop them from the case's evidence/proof ledger.
+
+Do not blindly map UNKNOWN to INCOMPLETE.
+
+Do not fabricate official findings or operations.
+
+Where the official schema cannot express a genuine known violation, preserve and report the limitation.
+
+### P1 acceptance gate
+
+Reproduce and correct the stale-state and wrong-treatment counterexamples.
+
+Verify the existing 21 scenarios plus new independent tests.
+
+Show the exact 518-case effects.
+
+Reject changes that merely delete unsupported steps while concealing unresolved obligations.
+
+---
+
+# 7. PRIORITY P2 — MAKE THE AI AGENT USEFUL
+
+Do not run another broad 518-case LLM sweep merely to accumulate model calls.
+
+The current investigator proved it can abstain, but has not demonstrated a useful accepted discovery.
+
+Investigate whether targeted AI reasoning can contribute to:
+
+1. Screenshot-region interpretation.
+2. Direct observation versus cross-system reference classification.
+3. Conflicting evidence interpretation.
+4. Event or batch-lineage reconstruction.
+5. Request intent involving negation, multilingual language and mixed clauses.
+6. Discovering relevant evidence missed by keyword retrieval.
+7. Identifying which deterministic evidence check would resolve a specific uncertainty.
+
+Use the existing read-only tools and validators.
+
+Do not ask the model to manufacture ownership from timing.
+
+### AI proof-of-value experiment
+
+Select a small, frozen set of actual evidence questions where the answer can be independently validated.
+
+Measure:
+
+- Successful tool calls.
+- Relevant evidence discovered.
+- Correctly interpreted source observations.
+- Accepted grounded proposals.
+- Rejected proposals.
+- Incorrect reasoning.
+- Changed case outputs, if any.
+- Tokens and cost.
+
+If the agent only provides explanations, distinguish explanatory utility from output accuracy gains.
+
+If no proposed decision can pass a valid proof check, acknowledge the limitation and stop scaling.
+
+Maintain the ₹0 incremental paid budget.
+
+Use cached model responses where possible.
+
+Do not weaken validators merely to manufacture AI contributions.
+
+---
+
+# 8. EVALUATION REQUIREMENTS — EVERY CHANGE MUST BE MEASURABLE
+
+For each promoted fix, compare against:
+
+**Baseline A:** Original Phase 6 default, 12/32.
+
+**Baseline B:** Stage 2 working candidate, 21/32.
+
+**Baseline C:** The immediately preceding qualified correction.
+
+Track:
+
+| Metric | Required |
+|---|---|
+| Public exact matches | Yes |
+| Public status accuracy | Yes |
+| Resource precision/recall | Yes |
+| Finding accuracy | Yes |
+| Remediation accuracy | Yes |
+| Verification accuracy | Yes |
+| Citation validity | Yes |
+| Scope-proof defects | Yes |
+| Claim-as-readback defects | Yes |
+| Missing/omitted obligations | Yes |
+| Attribution false positives | Yes |
+| 518-case status changes | Yes |
+| Added/removed steps | Yes |
+| Agent accepted/rejected proposals | Yes |
+| Test failures | Yes |
+
+Every changed case must have a trace explaining:
+
+1. Its old conclusion.
+2. Its new conclusion.
+3. The source evidence responsible.
+4. The mechanism that changed.
+5. Whether the policy result is now better supported.
+6. Whether new risks were introduced.
+
+Separate structural validity, semantic proof validity and obligation completeness.
+
+A structurally valid CSV is not necessarily a correct audit.
+
+A zero-defect set of emitted citations is not necessarily a complete audit.
+
+A public-score improvement is not proof of better hidden performance.
+
+### Mandatory independent controls
+
+Do not rely only on tests written to validate the new implementation.
+
+Attempt to falsify each correction using different source arrangements, contradictory evidence, missing rows, decoys and timestamp changes.
+
+Use existing Phase 4/5/6 adversarial artifacts where appropriate.
+
+Preserve legitimate pre-request evidence.
+
+Respect `audit_at` and document unresolved retrospective-identity questions.
+
+Cases 39 and 55 remain in the required 518-row output, but are reportedly excluded from evaluation. Do not optimize specifically for their labels.
+
+---
+
+# 9. EXECUTION ORDER — DO NOT STOP AT ANALYSIS
+
+Carry out the following sequence.
+
+### Step 1 — Restore and confirm baseline
+
+Verify repository state, test suite and candidate fingerprints.
+
+### Step 2 — P0: Proof audit
+
+Classify all 42 newly added COMPLETE account verifications.
+
+Implement corrections supported by generalizable evidence.
+
+### Step 3 — P0: Trust-boundary repair
+
+Reproduce and fix the agent-link validation bypass.
+
+Add adversarial and positive-control tests.
+
+### Step 4 — P1: Recover missed resources
+
+Deep-trace all 13 remaining public misses.
+
+Implement and test any defensible new attribution mechanisms.
+
+### Step 5 — P1: State and policy corrections
+
+Repair confirmed chronology, source-authority and treatment defects without silently dropping obligations.
+
+### Step 6 — P2: Targeted agent improvement
+
+Demonstrate at least one independently verifiable useful investigation if achievable; otherwise retain a safe advisory role and clearly explain the blocker.
+
+### Step 7 — Full qualification
+
+Run the complete test suite, sample evaluation, 518-case candidate evaluation, semantic citation checks, obligation accounting and output diffs.
+
+Keep all candidate outputs separate from root `output.csv`.
+
+If work must be interrupted, preserve a reproducible checkpoint of completed changes, results, remaining blockers and exact next actions.
+
+**Do not spend the session merely writing another plan and requesting permission to begin. The above engineering work is authorized.**
+
+---
+
+# 10. REQUIRED DELIVERABLES
+
+At completion, provide real code changes and the following evidence.
+
+## A. Accuracy comparison
+
+| Metric | Phase 6 | Stage 2 | New candidate |
+|---|---:|---:|---:|
+| Exact public cases | 12/32 | 21/32 | Measured |
+| Resource recall | 85/111 | 98/111 | Measured |
+| Resource precision | 1.000 | 1.000 | Measured |
+| Semantic defects | Measured | Measured | Measured |
+| Unsupported COMPLETE verifications | Measured | Measured | Measured |
+| Omitted obligations | Measured | Measured | Measured |
+
+Do not fill unknown cells with guesses.
+
+## B. Case-specific proof report
+
+Provide the 42 COMPLETE verification classifications and the 13 missing-resource investigations.
+
+Each result must reference real source evidence.
+
+## C. Security regression report
+
+Show the original agent-link exploit failing safely after the fix, with positive controls succeeding.
+
+## D. State-correctness report
+
+Show before/after results for cases 86 and 390 and the relevant adversarial scenarios.
+
+## E. AI-agent assessment
+
+Explain whether the model contributed any new independently validated information or improved any decisions.
+
+Include actual costs and call counts.
+
+## F. Full change inventory
+
+List modified files, tests added, output changes and any unresolved problems.
+
+## G. Recommended next action
+
+Conclude with:
+
+- What genuinely improved.
+- What remains blocked by evidence or contract limitations.
+- Which code should be retained or reverted.
+- Whether the new candidate is stronger than the Stage 2 baseline.
+- Whether the new candidate is suitable for the eventual root output.
+- The highest-value remaining correction before submission readiness.
+
+---
+
+# 11. DEFINITION OF SUCCESS
+
+Success is **not** another 100-test milestone or another 20-page research report.
+
+Success means demonstrable progress such as:
+
+- Unsupported COMPLETE citations corrected.
+- A real trust-boundary exploit eliminated.
+- Additional correctly attributable public resources recovered.
+- False attribution mechanisms reduced.
+- State chronology and policy treatment demonstrably more accurate.
+- Useful AI investigations validated against independent evidence.
+- Improved output correctness with regression evidence.
+- A stronger, more defensible candidate than the current 21/32 baseline.
+
+Do not chase 32/32 by guessing.
+
+Do not claim improvements that have not been measured.
+
+If particular sample resources are impossible to attribute from supplied evidence, identify that limitation rigorously and invest effort elsewhere.
+
+**We want the strongest possible final GhostLedger submission, not artificial benchmark agreement.**
+
+Implement the corrections, run the experiments, measure the outcome and report the actual results.
+
+**Begin execution now.**
+
+Agent Response Summary:
+Correction entry, appended (prior entries untouched). The 2026-10-25T04:09:42Z entry recorded the context-compaction summary in its User Prompt field instead of the user's actual message. The prompt above is the user message sent at 2026-10-25T03:44:59Z, recovered verbatim from the native session transcript (e85aa1c6-0fd5-4743-a4fd-9b7a30c76376.jsonl, line 1635); it contained no secrets. Its response is the one summarized in the 04:09:42Z entry.
+
+Actions:
+* Extracted the message from the native Claude Code transcript; appended this entry
+
+Context:
+tool=Claude Code
+model=claude-opus-5-5
+branch=main
+repo_root=D:\oct26\hackerrank-orchestrate-october26
+worktree=main
+parent_agent=none
+
+## [2026-10-25T04:59:16Z] Phase 7 correctness qualification: chronology, claim-only fix, AI-link test
+
+User Prompt (verbatim, secrets redacted):
+Continue GhostLedger from the latest Phase 7 recovery commit.
+Execute a targeted correctness-qualification pass. Do not enter another planning-only phase.
+Before touching code, read `AGENTS.md`, especially sections 5.1–5.4 governing `log.txt`. Follow its exact prescribed SESSION START and per-turn entry formats. Record every responded-to user prompt verbatim with secrets redacted, one entry per turn. Use authoritative runtime `tool=` and `model=` identifiers; preserve genuine timestamps, worktree details and actions. Append only. Re-read each entry to verify compliance. Review the previously supplied log's formatting defects and document any irrecoverable historical gaps without inventing or retroactively fabricating entries. Maintain required native traces separately.
+Implementation priorities:
+
+1. Inspect the 10 COMPLETE account verifications classified as recoverable through alternative FULL-scope evidence. Verify chronology, resource coverage and subject attribution. Where justified, correct the actual emitted citations using a generalizable evidence-selection mechanism, not case-specific substitutions.
+2. Reassess the eight partial-scope assertions. Do not assume that agreement with public sample answers proves completeness. Determine what the source actually establishes and retain unresolved classifications where proof is insufficient.
+3. Fix the compliant-claim-only fallback in `state.py`. Investigate `case_86` with explicit consideration of the authority of `search_index_service` readbacks. Preserve the valid chronological improvement without promoting unsupported compliance.
+4. Add an end-to-end positive test proving that a genuinely novel, independently grounded AI-discovered resource can enter the correct case. Preserve and rerun the existing cross-subject and fabricated-ID attack tests.
+5. Recheck unresolved obligations, especially cases where absence is cited to establish REDACTED, ANONYMIZED, BLOCKED or DISABLED. Do not fabricate status mappings or remediation operations.
+6. Run all tests, the 32 public cases, all 518 evaluation cases, structural and semantic validation, and full case-level diffs.
+
+Preserve the Stage 2 and recovery candidates as rollbacks. Do not modify root `output.csv`, create commits, push, or submit without approval.
+Deliver actual source corrections and a concise comparative report with public exact matches, resource precision/recall, corrected citations, remaining unsupported COMPLETE steps, unresolved obligations, changed evaluation rows, all regressions, test results and output fingerprints.
+Distinguish confirmed fixes from remaining assumptions. Do not call a candidate improved solely because it agrees with the public answer key.
+Finish with an explicit GO/HOLD verdict on promoting the resulting candidate to root `output.csv`, and identify any remaining submission blocker. Prioritize tangible improvements and qualification over more experimentation.
+
+Agent Response Summary:
+Omissions now prove absence only when captured after the record's last activity row at or before audit_at, with the declared-scope inventory preferred; this re-cites all 10 RECOVERABLE account verifications to post-operation full inventories and removes pre-operation citations (cases 35, 50, 52, 53, 103, 403, 462 now UNKNOWN_STATE unresolved). Claim-only files no longer yield a reading (retained PRESENT claims count as compliance claims), dropping claim-cited VERIFY_RECORD_PRESENT steps and flipping case_390 to COMPLETE; case_86's search_index_service lookup is kept as authoritative and reported as an assumption. Added an end-to-end positive AI-link test; 123 passed, 1 xfailed. Candidate q3 (sha256 95f40c90d039a64c, reproduced byte-identically by main.py): public 21/32 exact, 32/32 status, unchanged; unsupported COMPLETE verifications 44 -> 12, all disclosed; verdict GO pending user approval, root output.csv untouched. Historical log defects: the 04:09:42Z entry logged a compaction summary as its prompt (correction entry appended at 04:40:50Z); three entries sharing 02:45:05Z have unrecoverable timestamps and are left as-is.
+
+Actions:
+* Edited code/ghostledger/state.py, pipeline.py, ledger.py, proof.py; code/tests/test_proof_model.py, test_agent_links.py
+* Ran python -m pytest code/tests -q; .scratch/phase7/recovery/qual.py --name q3 --write; code/main.py --out <scratchpad>
+* Wrote .scratch/phase7/recovery/casediff.py, q3_vs_candidate.diff, q3_vs_stage2.diff, qualification_report.md
+* No commits, pushes, or root output.csv changes
+
+Context:
+tool=Claude Code
+model=claude-opus-5-5
+branch=main
+repo_root=D:\oct26\hackerrank-orchestrate-october26
+worktree=main
+parent_agent=none

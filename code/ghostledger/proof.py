@@ -131,9 +131,9 @@ def cite(auditor, rid, phase, state, evidence_id, audit_at, scope_status=None, a
             defects.append("CLAIM")
         if any(ledger._indeterminate(o) for o in obs):
             defects.append("INDETERMINATE")
-        if reading.state not in ok:
+        r = reading.state if reading else None          # None: the file only claims compliance
+        if r not in ok:
             defects.append("STATE_MISMATCH")
-        r = reading.state
     else:
         elig = [s for s in scopes if s.captured_at <= audit_at]
         if not elig:

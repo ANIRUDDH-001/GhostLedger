@@ -30,11 +30,11 @@ def setup():
     return _c["aud"], _c["reqs"]
 
 
-def grounded(aud, req):
+def grounded(aud, req, skip=()):
     """(resource, evidence) the engine itself linked through an identifier sighting of the requester."""
     base = aud.audit(req)
     tb = Toolbox(aud, req, base)
-    for rid in sorted(base.trace["states"]):
+    for rid in sorted(r for r in base.trace["states"] if not r.startswith(skip)):
         st = aud.states.resolve(rid, req["audit_at"])
         if st and any(s["owner"] == "requester" and s["evidence_id"] == st.evidence_id and not s["is_claim"]
                       for s in tb.resource_evidence(rid)["sightings"]):
@@ -141,6 +141,45 @@ class AgentLinkTrustBoundary(unittest.TestCase):
         self.assert_rejected("case_03", "search_001", ev)          # resource swapped
         self.assert_rejected("case_03", rid, "evidence_57")         # evidence swapped
         self.assert_rejected("case_07", rid, ev)                    # moved to another case
+
+    def test_11_novel_grounded_resource_enters_the_right_case_end_to_end(self):
+        # A resource the deterministic linker misses (simulated blind spot) but that a non-claim,
+        # eligible reading ties to the requester's identifiers: proposed, validated, stored, consumed.
+        aud, reqs = setup()
+        req = reqs["case_03"]
+        rid, ev = grounded(aud, req, skip=("account",))
+        full = aud.audit(req)
+
+        def blind(a):
+            orig = a.case_links
+
+            def case_links(r):
+                subj, links, cutoff = orig(r)
+                links.pop(rid, None)
+                return subj, links, cutoff
+            a.case_links = case_links
+            return a
+
+        a1 = blind(Auditor(aud.ds, Config(), index=aud.index))
+        base = a1.audit(req)
+        self.assertNotIn(rid, base.trace["states"])
+        self.assertNotIn(rid, {s["resource_id"] for s in base.steps})
+        tb = Toolbox(a1, req, base)
+        tb.resource_evidence(rid)                                   # the investigator's own tool call
+        ok, checks, reason, link = validators.validate_link(a1, req, base, {"resource_id": rid, "evidence_ids": [ev]}, tb)
+        self.assertTrue(ok, reason)
+        self.assertTrue(checks["novelty"])
+        with LinkFile(aud, {"case_03": [[rid, ev, reason]], "case_07": [[rid, ev, reason]]}) as a2:
+            a2 = blind(a2)
+            got = a2.audit(req)
+            other = a2.audit(reqs["case_07"])
+        self.assertEqual(got.trace["agent_links"], [(rid, ev, "accepted")])
+        mine = lambda r: [s for s in r.steps if s["resource_id"] == rid]
+        self.assertTrue(mine(got))
+        self.assertEqual((got.status, mine(got)), (full.status, mine(full)))   # same steps as when linked natively
+        # the same entry filed under another subject's case does not enter it
+        self.assertEqual(other.trace["agent_links"], [(rid, ev, "rejected at consumption")])
+        self.assertEqual(other.steps, aud.audit(reqs["case_07"]).steps)
 
     def test_malformed_links_file_entries_are_ignored(self):
         aud, reqs = setup()

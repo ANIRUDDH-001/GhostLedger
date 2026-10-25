@@ -235,14 +235,16 @@ class ProofModelRegressions(unittest.TestCase):
         self.assertEqual((cp.hidden_violations, cp.proof_decision), ([], "COMPLETE"))
 
     def test_8_deletion_claim_without_independent_state_proof(self):
+        # Phase 7: a claim-only file gives no reading, so the claim is neither cited nor silently
+        # dropped: no verification is emitted and the obligation is recorded as unresolved
         res, cp = assess(build({"ev_b8": lookup_claim("account_99881", "NOT_FOUND")}))
-        self.assertEqual(ops(res), [("VERIFICATION", "account_99881", "ABSENT", "ev_b8")])
-        c = citation(cp, "account_99881")
-        self.assertEqual((c.identity, c.authority), ("RESOURCE", "CLAIM"))
+        self.assertEqual(ops(res), [])
+        self.assertEqual(res.trace["unresolved"], {"account_99881": "UNKNOWN_STATE"})
         p = by_rid(cp)["account_99881"]
-        self.assertEqual((p.compliance, p.coverage, p.proven), (ledger.PROVEN_COMPLIANT, proof.CLAIMED, False))
-        self.assertEqual(cp.unsupported_verifications, ["account_99881"])
-        self.assertEqual((cp.ledger_decision, cp.proof_decision), ("COMPLETE", "UNRESOLVED"))
+        self.assertEqual((p.compliance, p.coverage, p.proven), (ledger.UNRESOLVED, proof.CLAIMED, False))
+        self.assertEqual(p.entry.basis, "CLAIM")
+        self.assertEqual(cp.unsupported_verifications, [])
+        self.assertEqual((cp.ledger_decision, cp.proof_decision), ("UNRESOLVED", "UNRESOLVED"))
         # control: a direct readback of the same record is a proof
         res, cp = assess(build({"ev_b8d": readback("account_99881")}))
         self.assertEqual(citation(cp, "account_99881").authority, proof.AUTHORITATIVE)
