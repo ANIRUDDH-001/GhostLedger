@@ -3289,3 +3289,249 @@ branch=main
 repo_root=D:\oct26\hackerrank-orchestrate-october26
 worktree=main
 parent_agent=none
+
+
+## [2026-10-25T04:09:42Z] Phase 7 correctness recovery: trust boundary, state fix, 42-row audit
+
+User Prompt (verbatim, secrets redacted):
+This session is being continued from a previous conversation that ran out of context. The summary below covers the earlier portion of the conversation.
+
+<tools-used-before-summary>Bash, Edit, PowerShell, Read, ToolSearch, WebFetch, Write, mcp__ccd_turn__update_plan, mcp__ccd_turn__wrap_up</tools-used-before-summary>
+Summary:
+1. **Primary Request and Intent**
+
+The project is GhostLedger (HackerRank Orchestrate, October 2026). The repo is `D:\oct26\hackerrank-orchestrate-october26`.
+
+The latest user message is a full execution brief: "GHOSTLEDGER — PHASE 7 CORRECTNESS RECOVERY & ACCURACY IMPROVEMENT". Execution is approved; the user said not to stop at planning or reporting. Its execution order:
+
+- **Step 1:** confirm baseline, tests and fingerprints.
+- **Step 2 (P0):** classify all 42 account verifications that Stage 2 newly added to COMPLETE cases. For each record:
+  - case and resource;
+  - worker attribution and candidate graph;
+  - subject identifiers and audit cutoff;
+  - operation, evidence id, file, location and row;
+  - capture and observation times;
+  - whether it is a direct readback, a claim or an omission;
+  - inventory completeness (FULL / FILTERED / UNKNOWN);
+  - physical copies;
+  - later contradictions;
+  - whether the treatment is proven;
+  - a classification (DIRECTLY_PROVEN, VALID_FULL_SCOPE_OMISSION, RECOVERABLE_WITH_ALTERNATIVE_EVIDENCE, SUBJECT_ATTRIBUTION_UNCERTAIN, SCOPE_INSUFFICIENT, CLAIM_ONLY, CONTRADICTED, POLICY_INCOMPATIBLE) and a recommended correction.
+
+  Implement only generalizable fixes and add regression tests. Report before/after outputs, the public delta, the 518 semantic delta and the count of remaining questionable COMPLETE citations. Do not auto-remove all 18 flagged items, and do not keep them merely because they help the public score.
+- **Step 3 (P0): fix the agent-link trust boundary.** The repro is `case_03` with injected `search_001` and `evidence_57`, which flips case_03 from COMPLETE to INCOMPLETE. `Auditor.agent_links()` only checks that the ids exist.
+  - Use a single authoritative validation interface for both proposal and consumption, and revalidate on consumption.
+  - Write the 10 mandatory adversarial tests:
+    1. resource belonging to another user;
+    2. correct resource with an unrelated evidence id;
+    3. fabricated resource id;
+    4. fabricated evidence id;
+    5. post-audit evidence;
+    6. timing-only account;
+    7. conflicting ownership identifiers;
+    8. same resource associated with competing requests;
+    9. a valid grounded proposal (positive control);
+    10. a previously validated proposal altered before consumption.
+  - Do not just disable agent links.
+- **Step 4 (P1): deep-trace the 13 missing public resources.** Build the provenance chain request → identity → activity → resource → source → state → policy → step and find the first broken edge.
+  - The resources are 7 anonymized analytics, 4 accounts and 2 audit records.
+  - Only general mechanisms are allowed, tested against negative controls. Report audit records that cannot be found as `NOT_RECOVERABLE_FROM_PARTICIPANT_EVIDENCE`.
+- **Step 5 (P1): state and policy fixes.**
+  - Cases 86 and 390 (stale state).
+  - Latest eligible observation within a file.
+  - Direct versus reported observations.
+  - Physical copies.
+  - Same-timestamp contradictions.
+  - Reported SUCCESS followed by a direct PRESENT.
+  - Reported NOT_FOUND versus authoritative absence.
+  - Treatment-specific compliance.
+  - UNKNOWN obligations must not disappear silently, and there must be no blind UNKNOWN→INCOMPLETE mapping.
+  - Do not promote State Engine S wholesale.
+- **Step 6 (P2): targeted AI proof of value.** Use a small frozen question set and cached responses first, at ₹0. Do not weaken validators.
+- **Step 7: full qualification.** Tests, sample evaluation, 518 evaluation, semantic citation checks, obligation accounting and diffs. Keep candidates under `.scratch/`.
+- **Deliverables A–G:**
+  - accuracy comparison (Phase 6 12/32, Stage 2 21/32, new candidate; never fill unknown cells with guesses);
+  - the 42-row and 13-resource proof reports;
+  - security regression report;
+  - state-correctness report;
+  - AI assessment with costs;
+  - change inventory;
+  - recommended next action.
+- Every changed case needs a trace (old/new conclusion, evidence, mechanism, risk).
+
+Baselines:
+- A: Phase 6, 12/32.
+- B: Stage 2, 21/32, sha `962f1fb9`.
+- C: the previous qualified correction.
+
+Constraints (verbatim or near-verbatim from the user):
+- "Do not create branches, commit or push."
+- "Do not modify root `output.csv` without explicit approval." (Root output.csv sha 75509079ce804cb5 is the 2,885-step baseline.)
+- "Preserve `.scratch/` and all earlier experiments."
+- "Do not hardcode public sample answers, case-specific exceptions, resource IDs or hidden assumptions into production."
+- "Do not invent resource ownership, evidence, missing records, states or timestamps."
+- "Do not introduce invalid operations or statuses outside the official contract."
+- "Do not spend money on inference." / "Reuse existing cached experiments before considering additional free-tier model calls."
+- "Continue authentic append-only logging required by `AGENTS.md`."
+- "Maintain the full 518-row input ordering."
+- "Do not weaken validators merely to manufacture AI contributions."
+- "Cases 39 and 55 remain in the required 518-row output... Do not optimize specifically for their labels."
+- Earlier constraints still apply:
+  - never disclose credentials or log secrets;
+  - do not rotate API keys;
+  - ₹0 paid budget;
+  - do not report estimated billing as verified;
+  - no Ollama;
+  - do not destroy or clean `.scratch`;
+  - do not contact organizers;
+  - no commits from the agent ("i will do the commits and push"); "stay away from github".
+- "You do not need further approval for routine local implementation or testing."
+
+2. **Key Technical Concepts**
+- **Pipeline:** intent regex → IdentityGraph links → worker attribution (forced edges via Dulmage–Mendelsohn) → StateEngine (latest eligible sighting; scoped absence from the latest eligible capture that omits the resource) → PolicyEngine → steps → contract gate.
+- **`ledger.ScopeTyper`** (analysis only) rates each scope:
+  - FILTERED: omits a live record of its system;
+  - FULL: snapshot_scope, not contradicted;
+  - UNKNOWN: otherwise.
+- **`proof.cite`** gives a citation's identity (RESOURCE / SCOPE / ROW / NONE) and authority (AUTHORITATIVE or the first defect, e.g. OMISSION_UNADMITTED, CLAIM).
+- **StateEngine scope kinds:** `SCOPE_KINDS = {"snapshot_scope","collection"}`. Alternatives can be passed via `StateEngine(index, scope_kinds)`.
+- **Snapshot bundles** (`records_assurance_snapshot_bundle`, e.g. evidence_02/12/17/26/31/35/40/45/49):
+  - batch-timed captures listing 0–10 selected records per collection;
+  - capture times coincide with the `audit_at` shared by batches of about 10 cases;
+  - not per-subject.
+- **Gold semantics found:**
+  - sample gold cites omissions from non-FULL scopes in 4 of 34 COMPLETE verifications: case_01, case_02, case_04 → evidence_54 failover capture (UNKNOWN/FILTERED); case_31 → evidence_51 (UNKNOWN);
+  - gold uses the latest eligible capture even when an earlier FULL scope exists (case_31 cites evidence_51 rather than evidence_90).
+
+3. **Files and Code Sections**
+
+`code/ghostledger/pipeline.py` (read; the injection point)
+- `Auditor.agent_links()` keeps only ids found in `index.by_resource` and the manifest. There is no semantic revalidation; this is the trust-boundary defect.
+- In `audit()`, accepted agent links are added as `Link(rid, "supported", ev, basis)` before attribution.
+- Primary-account exception: an unsighted resource survives when `rid == primary`.
+- `one_primary_account` keeps only the attributed or most recently sighted account.
+- UNKNOWN-state resources are dropped from COMPLETE cases (`dropped[rid] = "state at audit_at not established..."`). This is the "UNKNOWN obligations disappearing" issue.
+
+`code/ghostledger/attribution.py` (read)
+- Candidate window: `LEAD=80min`, `SLACK=10min`, with a COMPAT check of the reported result.
+- Veto: rows on accounts whose evidence names other users are excluded.
+- Requests settled by an own-identifier candidate are removed first.
+- `forced_edges(E)` returns the edges present in every maximum matching.
+
+`code/ghostledger/state.py`, `policy.py`, `ledger.py`, `proof.py` (read)
+- `ledger.obligations`, `ledger.ScopeTyper`, `proof.cite` and `proof.assess` are the analysis tools.
+- `validators.validate_link(auditor, req, baseline, prop, tools)` in `code/ghostledger/agent/validators.py` is the Stage 3 validator; it is the candidate for the single authoritative interface.
+- The `agent/investigator.py` and `test_agent.py` contents were shown in full earlier in the conversation.
+
+`code/evaluation/evaluate.py`
+- `score(pred, gold)` returns `(m, c, per_case)`. That is three values; my last command unpacked two.
+- `per_case[cid]` holds `exact`, `missing` and `extra`.
+- `load_rows(path)`.
+
+`.scratch/phase7/recovery/p0_audit.py` (created)
+- Compares `.scratch/phase7/stage1/output.csv` with `stage2/output.csv`.
+- For each new account step in a COMPLETE case, records: worker row, competing requests, citation via `proof.cite(..., typer.status)`, basis, scope type, eligible sightings, post-audit sightings and eligible absence scopes.
+- Writes `.scratch/phase7/recovery/p0_audit.json`.
+
+`.scratch/phase7/recovery/perturb.py` (created)
+- For each forced edge, drops each other row or request in its connected component, recomputes, and labels the edge STABLE / ABSTAINS / FLIPS.
+- Writes `perturb.json`.
+- Result: 94 STABLE, 74 ABSTAINS, **0 FLIPS** out of 168.
+
+`.scratch/phase7/recovery/p0_classified.json` (written by an inline script) holds the classification table. Counts:
+
+| Classification | Count | Cases |
+|---|---|---|
+| DIRECTLY_PROVEN (ABSENT `profile_lookups`, http 404, not a claim, in service_resource_export evidence_62/68/71/77/83/86/89) | 15 | 97, 150, 151, 152, 183, 190, 274, 276, 343, 351, 424, 427, 524, 530, 532 |
+| VALID_FULL_SCOPE_OMISSION (snapshot_scope evidence_63/66/69/81/84) | 9 | 178, 204, 206, 393, 452, 493, 494, 497, 502 |
+| RECOVERABLE_WITH_ALTERNATIVE_EVIDENCE (a FULL snapshot_scope captured after the worker row and ≤ audit_at also omits the account) | 10 | 57, 108, 111, 260, 308, 309, 354, 456, 458, 545 |
+| SCOPE_INSUFFICIENT (strict; only partial snapshot collections, but gold-consistent) | 8 | 103, 162, 253, 362, 403, 462, 506, 512 |
+
+- None of the 42 has an eligible or post-audit sighting listing the account (the accounts are never sighted; they exist only via worker rows).
+- Sample check: 13 of 13 forced-edge attributions are in gold with byte-identical steps (case_01, 02, 07, 08, 10, 18, 20, 21, 22, 25, 30, 31, 32).
+
+4. **Errors and fixes**
+- Python 3.13 on PATH lacks pypdf. Use `/c/Users/ANIRUDDH/AppData/Local/Programs/Python/Python311/python.exe` (plain `python` in bash also worked for scripts).
+- `KeyError: 'path'`: the manifest columns are `file_id,file_path,origin,captured_at`.
+- Counterfactual script error: `ValueError: too many values to unpack` because `score()` returns three values. Not yet fixed.
+
+5. **Problem Solving**
+- P0 conclusion so far: no demonstrated defect in the 42.
+  - The conservative ScopeTyper's FILTERED/UNKNOWN test rejects 4 of 4 gold omission citations, so it is miscalibrated relative to the dataset's citation semantics.
+  - Attributions are robust: 0 flips.
+  - Candidate generalizable improvement (analysis tooling): have `proof.cite` and coverage note corroboration by a later admitted FULL scope. That scope must be captured after the latest eligible non-absent sighting and ≤ audit_at. Remaining strictly questionable COMPLETE citations would then be 8.
+  - Planned counterfactual: FULL-only absence on the sample, to quantify the cost of a strict rule.
+- Stage 3 state:
+  - tests 110 passed, 1 xfail (Windows; Linux shows 109 passed, 1 skipped, 1 xfail);
+  - Stage 2 and stage3_nokey outputs are both 962f1fb9;
+  - eval statuses 160 COMPLETE / 348 INCOMPLETE / 10 NOT_APPLICABLE;
+  - 3,040 steps.
+
+6. **All user messages**
+- Earlier messages (from the prior summary), whose constraints still apply: no branches, commits or pushes; stay off GitHub; ₹0 budget; no key rotation; never log secrets; preserve `.scratch`; do not overwrite root output.csv; do not hardcode resource ids; and so on.
+- Stage 3 brief (completed).
+- Latest message: the pasted "GHOSTLEDGER — PHASE 7 CORRECTNESS RECOVERY & ACCURACY IMPROVEMENT" execution brief summarized in §1, ending "Implement the corrections, run the experiments, measure the outcome and report the actual results. **Begin execution now.**"
+
+7. **Pending Tasks** (plan list: step 1 done in effect; step 2 in progress)
+- Finish P0:
+  - fix the counterfactual (use `m, c, per = score(pred, gold)`; compare exact cases under scope_kinds `{"snapshot_scope"}` against the default);
+  - optionally implement corroboration in `proof.cite` with a test;
+  - write the 42-row table into the report.
+- P0 trust boundary:
+  - reproduce the case_03 / search_001 / evidence_57 injection;
+  - refactor so `Auditor.agent_links()` revalidates each link at consumption, using one shared validator built from `validators.validate_link` logic (case binding, subject ownership through identifier sightings, eligible evidence that actually reads the resource, temporal ≤ audit_at, no other-user or both ownership, timing never counts as ownership, file stores case_id plus a content hash or revalidates fully);
+  - add the 10 adversarial tests plus the positive control to `code/tests/test_agent.py` or a new test file;
+  - confirm the 518 output is unchanged when no links are supplied.
+- P1: trace the 13 missing resources:
+  - analytics: case_03 9406, case_04 901, case_21 5335, case_25 1895, case_26 4566, case_27 4574, case_28 6077;
+  - accounts: case_04 004 (evidence_54), case_23 410, case_28 5482, case_29 7012;
+  - audit records: case_18 6645, case_20 5569.
+- P1: state and policy fixes for cases 86 and 390 and the other listed defects; keep UNKNOWN obligations represented.
+- P2: a small cached AI check.
+- Qualification:
+  - run tests with Python311;
+  - run sample and 518 evaluations and the contract check;
+  - candidate outputs under `.scratch/phase7/recovery/`;
+  - report at `.scratch/phase7/recovery/report.md`.
+- Append a log.txt §5.2 entry with the verbatim prompt (secrets redacted) and `tool=Claude Code`, `model=claude-opus-5-5`, `branch=main`, `repo_root=D:\oct26\hackerrank-orchestrate-october26`, `worktree=main`, `parent_agent=none`; re-read it to verify.
+- Call `mcp__ccd_turn__wrap_up` (no commit buttons) and list the changed files for the user to commit.
+
+8. **Current Work**
+
+I was running the P0 counterfactual: how many public exact matches survive if only FULL-declared `snapshot_scope` captures may prove absence. The script:
+
+```python
+for name,kinds in (('stage2',None),('FULL-only',{"snapshot_scope"})):
+  aud=Auditor(ds,Config())
+  if kinds: aud.states=StateEngine(aud.index,kinds)
+  pred={r.case_id:(r.status,r.steps) for r in aud.run()}
+  c,per=score(pred,gold)   # BUG: score returns (m, c, per_case)
+```
+
+It failed with "ValueError: too many values to unpack (expected 2)".
+
+9. **Optional Next Step**
+
+Fix the unpacking to `m, c, per = score(pred, gold)` and print `c['case_exact']`, `c['res_tp']`, `c['res_fp']` and the non-exact cases for both variants. That quantifies the cost of a strict FULL-only absence rule and closes P0 with the 42-row table; I expect no output change, because gold cites non-FULL omissions. Then move to the P0 trust-boundary fix, per the brief: "Reproduce the `case_03` / `search_001` / `evidence_57` adversarial test on the current code. Then correct the complete proposal lifecycle."
+
+If you need specific details from before compaction (like exact code snippets, error messages, or content you generated), read the full transcript at: C:\Users\ANIRUDDH\.claude\projects\D--oct26\e85aa1c6-0fd5-4743-a4fd-9b7a30c76376.jsonl
+Continue the conversation from where it left off without asking the user any further questions. Resume directly — do not acknowledge the summary, do not recap what was happening, do not preface with "I'll continue" or similar. Pick up the last task as if the break never happened.
+
+The messages after this summary are the most recent messages from before compaction, kept verbatim. The summary was written without seeing them, so something it says has not happened yet may already have happened in them.
+
+Agent Response Summary:
+Classified the 42 Stage 2 COMPLETE account verifications (15 direct, 9 full-scope omission, 10 recoverable with alternative FULL scope, 8 strict scope-insufficient but gold-consistent; 0 claim/contradicted; forced-edge perturbation 0 flips of 168); a FULL-only absence counterfactual costs 3 public exact cases, so nothing was removed. Closed the agent-link trust boundary: one shared grounding validator (check_grounding) used at proposal and revalidated at consumption; the case_03 search_001/evidence_57 injection is now rejected; 12 adversarial tests added (122 passed, 1 xfail). Traced the 13 missing public resources: 3 not recoverable from participant evidence, the rest timing-ambiguous; timing-only analytics attribution failed its negative control (1 TP, 1 FP) and was rejected. Added per-location latest in-file reading with claim asymmetry (case_86 INCOMPLETE->COMPLETE on a direct reading at audit_at; case_390 unchanged) and explicit unresolved-obligation accounting (13 in 518, no output change). Cached AI replay: 41/41 cache hits, 0 links, cost 0. Candidate 59bfeb6c: public 21/32 (unchanged), 518 delta 1 case, 0 contract errors; root output.csv untouched; nothing committed.
+
+Actions:
+* Edited code/ghostledger/agent/validators.py, agent/tools.py, pipeline.py, state.py, proof.py
+* Added code/tests/test_agent_links.py
+* Added .scratch/phase7/recovery/ (qual.py, p0_audit.py, perturb.py, trace13.py, analytics_attr.py, candidate/, pilot_replay/, report.md)
+* python -m pytest code/tests -q; qual.py --name candidate --write; code/main.py --out .scratch/phase7/recovery/candidate/main_output.csv; agent_pilot.py --offline
+
+Context:
+tool=Claude Code
+model=claude-opus-5-5
+branch=main
+repo_root=D:\oct26\hackerrank-orchestrate-october26
+worktree=main
+parent_agent=none

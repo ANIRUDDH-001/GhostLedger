@@ -2,9 +2,10 @@
 
 Only evidence a reviewer could have held at audit_at is used: the file must be captured at or
 before audit_at and the record-level observation time must not be later than audit_at.
-The latest eligible sighting wins. Within one file every replica copy is compared and any
-non-compliant copy (still present / identifiable / active) decides that file's reading, so a
-drifted failover replica is not hidden by a clean primary. Absence without a sighting needs a
+The latest eligible sighting wins. Within one file each physical location (replica table, store)
+contributes its latest reading and any non-compliant one (still present / identifiable / active)
+decides that file's reading, so a drifted failover replica is not hidden by a clean primary and a
+stale row in a time series does not outlive a later reading (file_reading). Absence without a sighting needs a
 scope: a capture that enumerates the resource's system completely and does not list it.
 Activity rows (operation claims) never establish state.
 """
@@ -42,8 +43,9 @@ def scope_kind(s):
 
 
 class StateEngine:
-    def __init__(self, index, scope_kinds=SCOPE_KINDS):
+    def __init__(self, index, scope_kinds=SCOPE_KINDS, in_file="per_location"):
         self.index = index
+        self.in_file = in_file               # per_location (Phase 7) | max_severity (Phase 6 and earlier)
         self.scopes_by_system = defaultdict(list)
         for s in index.scopes:
             if scope_kind(s) in scope_kinds:
@@ -60,7 +62,7 @@ class StateEngine:
             # the file whose latest sighting of the resource is the most recent; ties -> later capture
             fid = max(by_file, key=lambda f: (max(o.observed_at for o in by_file[f]), by_file[f][0].file_captured_at, f))
             group = by_file[fid]
-            o = max(group, key=lambda x: (SEVERITY.get(x.state, 0), x.observed_at))
+            o = self.file_reading(group)
             best = ResourceState(resource_id, o.system_id, o.state, self._category(group, cats), fid,
                                  max(x.observed_at for x in group), f"latest sighting in {o.location} ({o.kind})", obs)
         if best:
@@ -68,6 +70,32 @@ class StateEngine:
             # overrides a direct sighting (measured: it hid a drifted replica and retained audit records).
             return best
         return None
+
+    def file_reading(self, group):
+        """The reading one file gives for a resource.
+
+        per_location: each physical location (replica table, store, claim list) contributes its
+        latest eligible reading, so a time series inside one file is not decided by a stale row;
+        a compliant claim never establishes compliance, so that location falls back to its latest
+        direct reading (or drops out). The most severe location reading decides, so a drifted
+        replica still outranks a clean primary; same-timestamp disagreements resolve to the more
+        severe reading. If every location drops out (compliance only claimed), the file's most
+        severe reading stands, as before: a claim can keep a finding open but never close it."""
+        sev = lambda x: (SEVERITY.get(x.state, 0), x.observed_at)
+        if self.in_file != "per_location":
+            return max(group, key=sev)
+        by_loc = defaultdict(list)
+        for x in group:
+            by_loc[x.location].append(x)
+        picked = []
+        for xs in by_loc.values():
+            o = max(xs, key=lambda x: (x.observed_at, SEVERITY.get(x.state, 0)))
+            if o.claim and SEVERITY.get(o.state, 0) < 3:
+                direct = [x for x in xs if not x.claim]
+                o = max(direct, key=lambda x: (x.observed_at, SEVERITY.get(x.state, 0))) if direct else None
+            if o:
+                picked.append(o)
+        return max(picked, key=sev) if picked else max(group, key=sev)
 
     def scoped_absence(self, resource_id, audit_at):
         """For a resource with no eligible sighting: ABSENT if an eligible capture enumerates its

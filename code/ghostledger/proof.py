@@ -126,7 +126,7 @@ def cite(auditor, rid, phase, state, evidence_id, audit_at, scope_status=None, a
         if not obs:
             defects.append("INELIGIBLE" if any(o.state for o in in_file) else "INDETERMINATE")
             return Citation(identity, _first(defects), sorted(set(defects), key=DEFECT_ORDER.index))
-        reading = max(obs, key=lambda o: (SEVERITY.get(o.state, 0), o.observed_at))
+        reading = auditor.states.file_reading(obs)     # the same in-file rule the state engine applies
         if all(o.claim for o in obs):
             defects.append("CLAIM")
         if any(ledger._indeterminate(o) for o in obs):

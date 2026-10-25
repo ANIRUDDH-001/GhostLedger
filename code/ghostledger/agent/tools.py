@@ -7,6 +7,7 @@ Ownership is reported as a class, not as raw identifiers: "requester" (an identi
 requester), "other:<n>" (identifiers naming n other users only), "both" or "none".
 """
 from .. import attribution
+from . import validators
 from ..evidence import prefix_of, system_of
 from ..policy import PREFIX_CATEGORY
 from ..state import eligible
@@ -29,16 +30,7 @@ class Toolbox:
         return self._id_users
 
     def owner_class(self, identifiers):
-        if not identifiers:
-            return "none"
-        mine = bool(identifiers & self.subj.identifiers)
-        users = set().union(*(self.id_users().get(i, ()) for i in identifiers))
-        others = users - self.subj.user_ids
-        if mine and others:
-            return "both"
-        if mine:
-            return "requester"
-        return f"other:{len(others)}" if others else "none"
+        return validators.owner_class(self.a, self.subj, identifiers)
 
     def _note(self, tool, args, out):
         self.calls.append({"tool": tool, "args": args, "n": len(out) if isinstance(out, list) else 1})

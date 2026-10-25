@@ -13,6 +13,7 @@ from .safeio import atomic_write_text
 from .state import ResourceState, StateEngine, eligible
 
 RETAINED_CATEGORIES = {"SECURITY_AUDIT_LOG", "LEGAL_HOLD_RECORD"}
+from .agent import validators
 from .steps import finalize, step, to_json
 
 
@@ -47,14 +48,15 @@ class Auditor:
         self._attributed = {}
 
     def agent_links(self):
-        """case_id -> [(resource_id, evidence_id, basis)] accepted by agent/validators.py; ids are re-checked here."""
+        """case_id -> [(resource_id, evidence_id)] as stored by agent/investigator.py. Untrusted: audit()
+        revalidates every entry against its own case (agent.validators.revalidate) before using it."""
         if not hasattr(self, "_agent_links"):
             self._agent_links = {}
             if self.cfg.agent_links:
                 with open(self.cfg.agent_links, encoding="utf-8") as f:
                     raw = json.load(f)
-                self._agent_links = {c: [tuple(x) for x in v if x[0] in self.index.by_resource and x[1] in self.ds.manifest]
-                                     for c, v in raw.items()}
+                self._agent_links = {str(c): [(str(x[0]), str(x[1])) for x in v if isinstance(x, (list, tuple)) and len(x) >= 2]
+                                     for c, v in raw.items() if isinstance(v, list)}
         return self._agent_links
 
     def attributed_pool(self):
@@ -109,9 +111,11 @@ class Auditor:
         if self.cfg.use_candidates:
             for rid, v in self.graph.candidates(req, links).items():
                 links[rid] = v
-        for rid, ev, basis in self.agent_links().get(cid, ()):
-            links.setdefault(rid, []).append(Link(rid, "supported", ev, basis))
-            trace.setdefault("agent_links", []).append((rid, ev, basis))
+        for rid, ev in self.agent_links().get(cid, ()):
+            link = validators.revalidate(self, req, rid, ev)
+            trace.setdefault("agent_links", []).append((rid, ev, "accepted" if link else "rejected at consumption"))
+            if link:
+                links.setdefault(rid, []).append(link)
         primary = None
         if self.cfg.worker_attribution and cid in self.attributed(cutoff):
             primary, aid = self.attributed(cutoff)[cid]
@@ -153,7 +157,7 @@ class Auditor:
                 continue
             decisions[rid] = d
         incomplete = any(not d.compliant and d.finding and resolved[r].state != "UNKNOWN" for r, d in decisions.items())
-        steps = []
+        steps, unresolved = [], {}       # obligations whose required state the evidence does not establish
         for rid, d in decisions.items():
             st = resolved[rid]
             if st.state == "UNKNOWN":
@@ -163,6 +167,7 @@ class Auditor:
                     steps.append(step("VERIFICATION", st.system_id, rid, d.verification, d.verification_state))
                 else:
                     dropped[rid] = "state at audit_at not established; cannot be cited as verified"
+                    unresolved[rid] = "UNKNOWN_STATE"
                 continue
             if d.treatment == "EXPIRED" or (not d.compliant and not d.finding):
                 dropped[rid] = d.note
@@ -171,10 +176,13 @@ class Auditor:
                 steps.append(step("FINDING", st.system_id, rid, d.finding, FINDING_STATE[d.finding], st.evidence_id))
                 steps.append(step("REMEDIATION", st.system_id, rid, d.remediation, REMEDIATION_STATE[d.remediation]))
             ev = "" if incomplete else st.evidence_id
+            if ev and st.state == "ABSENT" and d.verification_state != "ABSENT" and not st.observations:
+                # an omission proves absence, not the treatment state the step names: kept, but accounted
+                unresolved[rid] = f"{d.verification_state}_BY_OMISSION"
             steps.append(step("VERIFICATION", st.system_id, rid, d.verification, d.verification_state, ev))
         trace.update(states={r: (s.state, s.category, s.evidence_id, s.basis) for r, s in resolved.items()},
                      decisions={r: (d.rule_id, d.treatment, d.compliant) for r, d in decisions.items()},
-                     dropped=dropped)
+                     dropped=dropped, unresolved=unresolved)
         return CaseResult(cid, "INCOMPLETE" if incomplete else "COMPLETE", finalize(steps), trace)
 
     def run(self, requests=None):
